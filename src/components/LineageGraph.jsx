@@ -211,10 +211,9 @@ const TRANSFORM_ICONS = {
   expose:      { icon: 'A', bg: 'rgba(251,146,60,0.15)',  fg: '#fb923c' },
 };
 
-// ─── Flow particle component ───
-function FlowParticle({ path, color, dur = 2, delay = 0 }) {
+function FlowParticle({ path, color, dur = 2.5, delay = 0, opacity = 0.8 }) {
   return (
-    <circle r="2.5" fill={color} opacity="0.8">
+    <circle r="2.4" fill={color} opacity={opacity}>
       <animateMotion
         dur={`${dur}s`}
         repeatCount="indefinite"
@@ -467,13 +466,8 @@ export default function LineageGraph() {
                     onMouseLeave={() => setHoverEdge(null)}
                     style={{ cursor: 'pointer', transition: 'stroke-opacity 0.2s, stroke-width 0.2s' }}
                   />
-                  {/* Flow particles (visible when not dimmed) */}
-                  {(!chain || edgeOpacity > 0.3) && !edge.dashed && (
-                    <>
-                      <FlowParticle path={path} color={edge.color} dur={2.5} delay={0} />
-                      <FlowParticle path={path} color={edge.color} dur={2.5} delay={1.2} />
-                    </>
-                  )}
+                  <FlowParticle path={path} color={edge.color} delay={0} opacity={Math.max(edgeOpacity, 0.35)} />
+                  <FlowParticle path={path} color={edge.color} delay={1.2} opacity={Math.max(edgeOpacity, 0.35)} />
                   {isHovered && (
                     <text
                       x={(x1 + x2) / 2}

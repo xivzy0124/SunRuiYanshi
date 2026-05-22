@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import Header from './components/Header';
-import Footer from './components/Footer';
 import SectionTitle from './components/SectionTitle';
 import UnifiedPipeline from './components/UnifiedPipeline';
 import DetailPanel from './components/DetailPanel';
@@ -25,8 +24,6 @@ function PipelinePage() {
 
       <SectionTitle color="var(--accent3)" hint="字段级来源与去向追踪 · 9 衍生字段 · 6 阶段">全链路数据血缘图谱</SectionTitle>
       <LineageGraph />
-
-      <Footer />
     </div>
   );
 }
