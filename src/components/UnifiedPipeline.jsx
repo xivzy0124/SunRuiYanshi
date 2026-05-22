@@ -29,74 +29,63 @@ function Arrow({ color, className = 'pl-arrow' }) {
 }
 
 function MergeConnector() {
+  const topPipe = 'M0 41 H13 C28 41 36 58 48 78 L54 89';
+  const bottomPipe = 'M0 137 H13 C28 137 36 120 48 100 L54 89';
+  const mergedPipe = 'M54 89 H72';
+
   return (
     <div className="pl-merge-connector">
       <svg viewBox="0 0 72 178" preserveAspectRatio="none" fill="none">
-        <path d="M0 41 H14 C28 41 34 54 42 68 L54 89" stroke="#6c8cff" strokeWidth="1.4" strokeLinecap="round" fill="none" opacity="0.5" />
-        <path d="M0 137 H14 C28 137 34 124 42 110 L54 89" stroke="#22d3ee" strokeWidth="1.4" strokeLinecap="round" fill="none" opacity="0.5" />
-        <path d="M54 89 H72" stroke="#34d399" strokeWidth="1.4" strokeLinecap="round" fill="none" opacity="0.55" />
+        <path d={topPipe} stroke="#6c8cff" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" opacity="0.18" />
+        <path d={bottomPipe} stroke="#22d3ee" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" opacity="0.18" />
+        <path d={mergedPipe} stroke="#34d399" strokeWidth="18" strokeLinecap="round" opacity="0.22" />
 
-        <path d="M0 41 H14 C28 41 34 54 42 68 L54 89" stroke="#6c8cff" strokeWidth="1.2" strokeDasharray="4 4" opacity="0.7">
+        <path d={topPipe} stroke="#6c8cff" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+        <path d={bottomPipe} stroke="#22d3ee" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+        <path d={mergedPipe} stroke="#34d399" strokeWidth="12" strokeLinecap="round" opacity="0.95" />
+
+        <path d={topPipe} stroke="#dbe4ff" strokeWidth="1.1" strokeDasharray="4 5" opacity="0.55">
           <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="0.8s" repeatCount="indefinite" />
         </path>
-        <path d="M0 137 H14 C28 137 34 124 42 110 L54 89" stroke="#22d3ee" strokeWidth="1.2" strokeDasharray="4 4" opacity="0.7">
+        <path d={bottomPipe} stroke="#dffbff" strokeWidth="1.1" strokeDasharray="4 5" opacity="0.55">
           <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="0.8s" repeatCount="indefinite" />
         </path>
-        <path d="M54 89 H72" stroke="#34d399" strokeWidth="1.2" strokeDasharray="4 4" opacity="0.75">
+        <path d={mergedPipe} stroke="#ecfff7" strokeWidth="1.7" strokeDasharray="5 6" opacity="0.65">
           <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="0.8s" repeatCount="indefinite" />
         </path>
-
-        <circle r="2.2" fill="#6c8cff" opacity="0.85">
-          <animateMotion dur="1.1s" repeatCount="indefinite" path="M0,41 H14 C28,41 34,54 42,68 L54,89" />
-        </circle>
-        <circle r="2.2" fill="#22d3ee" opacity="0.85">
-          <animateMotion dur="1.1s" repeatCount="indefinite" begin="0.2s" path="M0,137 H14 C28,137 34,124 42,110 L54,89" />
-        </circle>
-        <circle r="2.2" fill="#34d399" opacity="0.9">
-          <animateMotion dur="0.8s" repeatCount="indefinite" begin="0.35s" path="M54,89 H72" />
-        </circle>
-
-        <circle cx="54" cy="89" r="3.8" fill="#34d399" opacity="0.95">
-          <animate attributeName="r" values="3.2;5;3.2" dur="1.2s" repeatCount="indefinite" />
-        </circle>
+        <circle cx="54" cy="89" r="8.2" fill="#101820" stroke="#34d399" strokeWidth="3" opacity="0.98" />
       </svg>
     </div>
   );
 }
 
 function ForkArrow() {
+  const mergedPipe = 'M0 87 H24';
+  const topPipe = 'M24 87 C40 87 43 41 72 41';
+  const bottomPipe = 'M24 87 C40 87 43 133 72 133';
+
   return (
     <div className="pl-fork">
       <svg viewBox="0 0 72 174" preserveAspectRatio="none" fill="none">
-        <path d="M0 87 H24" stroke="var(--green)" strokeWidth="1.4" strokeLinecap="round" opacity="0.6" />
-        <path d="M24 87 C42 87 42 41 72 41" stroke="var(--orange)" strokeWidth="1.4" strokeLinecap="round" fill="none" opacity="0.55" />
-        <path d="M24 87 C42 87 42 133 72 133" stroke="var(--orange)" strokeWidth="1.4" strokeLinecap="round" fill="none" opacity="0.55" />
+        <path d={mergedPipe} stroke="var(--green)" strokeWidth="18" strokeLinecap="round" opacity="0.22" />
+        <path d={topPipe} stroke="var(--orange)" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" opacity="0.16" />
+        <path d={bottomPipe} stroke="var(--orange)" strokeWidth="10" strokeLinecap="round" strokeLinejoin="round" opacity="0.16" />
 
-        <path d="M0 87 H24" stroke="var(--green)" strokeWidth="1.2" strokeDasharray="4 4" opacity="0.75">
+        <path d={mergedPipe} stroke="var(--green)" strokeWidth="12" strokeLinecap="round" opacity="0.95" />
+        <path d={topPipe} stroke="var(--orange)" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.92" />
+        <path d={bottomPipe} stroke="var(--orange)" strokeWidth="5.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.92" />
+
+        <path d={mergedPipe} stroke="#ecfff7" strokeWidth="1.7" strokeDasharray="5 6" opacity="0.65">
           <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="0.8s" repeatCount="indefinite" />
         </path>
-        <path d="M24 87 C42 87 42 41 72 41" stroke="var(--orange)" strokeWidth="1.2" strokeDasharray="4 4" fill="none" opacity="0.75">
+        <path d={topPipe} stroke="#fff2e7" strokeWidth="1.1" strokeDasharray="4 5" fill="none" opacity="0.58">
           <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="0.8s" repeatCount="indefinite" />
         </path>
-        <path d="M24 87 C42 87 42 133 72 133" stroke="var(--orange)" strokeWidth="1.2" strokeDasharray="4 4" fill="none" opacity="0.75">
+        <path d={bottomPipe} stroke="#fff2e7" strokeWidth="1.1" strokeDasharray="4 5" fill="none" opacity="0.58">
           <animate attributeName="stroke-dashoffset" from="0" to="-12" dur="0.8s" repeatCount="indefinite" />
         </path>
 
-        <path d="M66 36 L72 41 L66 46" stroke="var(--orange)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" opacity="0.75" />
-        <path d="M66 128 L72 133 L66 138" stroke="var(--orange)" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" opacity="0.75" />
-
-        <circle cx="24" cy="87" r="3.8" fill="var(--green)" opacity="0.95">
-          <animate attributeName="r" values="3.2;5;3.2" dur="1.2s" repeatCount="indefinite" />
-        </circle>
-        <circle r="2.2" fill="var(--green)" opacity="0.85">
-          <animateMotion dur="0.8s" repeatCount="indefinite" path="M0,87 H24" />
-        </circle>
-        <circle r="2.2" fill="var(--orange)" opacity="0.85">
-          <animateMotion dur="1.1s" repeatCount="indefinite" begin="0.2s" path="M24,87 C42,87 42,41 72,41" />
-        </circle>
-        <circle r="2.2" fill="var(--orange)" opacity="0.85">
-          <animateMotion dur="1.1s" repeatCount="indefinite" begin="0.35s" path="M24,87 C42,87 42,133 72,133" />
-        </circle>
+        <circle cx="24" cy="87" r="8.2" fill="#101820" stroke="var(--green)" strokeWidth="3" opacity="0.98" />
       </svg>
       <span className="pl-fork-label">并行输出</span>
     </div>
