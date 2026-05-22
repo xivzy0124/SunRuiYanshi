@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(curl -s http://localhost:5177/)",
+      "PowerShell(\\(Invoke-WebRequest -Uri \"http://localhost:5177/\" -UseBasicParsing\\).Content.Substring\\(0, 500\\))",
+      "Bash(npx vite *)",
+      "Bash(timeout 5)",
+      "Bash(type C:\\\\Users\\\\xivzy\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-xivzy-Desktop-MadenMock-my-react-app\\\\f469da42-df7e-443d-a363-773ae8c7b39f\\\\tasks\\\\bs3jxqi9d.output)",
+      "Bash(curl -s http://localhost:5178/)",
+      "PowerShell(Invoke-WebRequest -Uri \"http://localhost:5178/\" -UseBasicParsing | Select-Object -ExpandProperty Content)",
+      "WebFetch(domain:localhost)",
+      "Bash(curl *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":5180\")",
+      "PowerShell(Invoke-WebRequest -Uri \"http://[::1]:5180/\" -UseBasicParsing | Select-Object -ExpandProperty Content)",
+      "Bash(findstr \"LISTENING\")",
+      "Bash(findstr \":517\")",
+      "Bash(taskkill *)",
+      "Bash(npx playwright *)",
+      "Bash(powershell *)"
+    ]
+  }
+}
