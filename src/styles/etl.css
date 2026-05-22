@@ -306,7 +306,7 @@
 }
 
 .pl-merge-connector {
-  flex: 0 0 var(--pipeline-merge-width);
+  flex: 0 0 calc(var(--pipeline-connect-width) + var(--pipeline-merge-width));
   height: var(--merge-height);
   pointer-events: none;
   display: flex;
@@ -318,6 +318,7 @@
 .pl-merge-connector svg {
   width: 100%;
   height: 100%;
+  overflow: visible;
 }
 
 .pl-right-section {
@@ -375,6 +376,7 @@
   width: 100%;
   height: 100%;
   opacity: 0.85;
+  overflow: visible;
 }
 
 .pl-fork-label {
