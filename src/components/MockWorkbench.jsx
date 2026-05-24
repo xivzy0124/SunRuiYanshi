@@ -302,7 +302,7 @@ function JsonView({ sample }) {
 }
 
 export default function MockWorkbench({ onPipelineReady }) {
-  const [samples, setSamples] = useState(() => Array.from({ length: randomSampleCount() }, (_, i) => makeSample(i)));
+  const [samples, setSamples] = useState([]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [activeTab, setActiveTab] = useState('skeleton');
   const [autoTimer, setAutoTimer] = useState(null);
@@ -314,7 +314,7 @@ export default function MockWorkbench({ onPipelineReady }) {
   const rightRef = useRef(null);
   const chatThreadRef = useRef(null);
   const aiTimerRef = useRef(null);
-  const activeSample = samples[activeIdx] || samples[0];
+  const activeSample = samples[activeIdx] || samples[0] || null;
 
   const matchMeta = useMemo(() => {
     return {
@@ -334,7 +334,7 @@ export default function MockWorkbench({ onPipelineReady }) {
     const angleRows = metricRows.filter((metric) => metric.group === '姿态角度');
     const scaleRows = metricRows.filter((metric) => metric.group === '身体尺度');
     const alignRows = metricRows.filter((metric) => metric.group === '中心对齐');
-    const visibility = JSON.parse(activeSample.landmarks_json || '[]');
+    const visibility = JSON.parse(activeSample?.landmarks_json || '[]');
     const avgVisibility = visibility.length
       ? visibility.reduce((sum, point) => sum + (point.visibility || 0), 0) / visibility.length
       : 0;
@@ -389,7 +389,7 @@ export default function MockWorkbench({ onPipelineReady }) {
       return;
     }
     fetchSamples();
-    setAutoTimer(window.setInterval(() => fetchSamples(), 3000));
+    setAutoTimer(window.setInterval(() => fetchSamples(), 1000));
   }
 
   function startAi() {
@@ -429,35 +429,41 @@ export default function MockWorkbench({ onPipelineReady }) {
 
       <div className="main">
         <div className="sidebar">
-          {samples.map((sample, index) => {
-            const matchText = { full: '完整', left_only: '仅左', right_only: '仅右', missed: '未匹配' }[sample.match_status];
-            return (
-              <button
-                className={`sample-card ${index === activeIdx ? 'active' : ''}`}
-                key={sample.interval_id}
-                type="button"
-                onClick={() => setActiveIdx(index)}
-              >
-                <div style={{ fontWeight: 600 }}>样本 #{index}</div>
-                <div className="row"><span className="label">匹配</span><span className={`match match-${sample.match_status}`}>{matchText}</span></div>
-                <div className="row"><span className="label">头前倾</span><span>{sample.head_tilt_deg}°</span></div>
-                <div className="row"><span className="label">FPS</span><span>{sample.fps}</span></div>
-              </button>
-            );
-          })}
+          {samples.length === 0 ? (
+            <div style={{ color: 'var(--muted)', padding: 20, textAlign: 'center' }}>暂无数据，请点击"抽取数据"或"自动刷新"</div>
+          ) : (
+            samples.map((sample, index) => {
+              const matchText = { full: '完整', left_only: '仅左', right_only: '仅右', missed: '未匹配' }[sample.match_status];
+              return (
+                <button
+                  className={`sample-card ${index === activeIdx ? 'active' : ''}`}
+                  key={sample.interval_id}
+                  type="button"
+                  onClick={() => setActiveIdx(index)}
+                >
+                  <div style={{ fontWeight: 600 }}>样本 #{index}</div>
+                  <div className="row"><span className="label">匹配</span><span className={`match match-${sample.match_status}`}>{matchText}</span></div>
+                  <div className="row"><span className="label">头前倾</span><span>{sample.head_tilt_deg}°</span></div>
+                  <div className="row"><span className="label">FPS</span><span>{sample.fps}</span></div>
+                </button>
+              );
+            })
+          )}
         </div>
 
         <div className="content">
-          <div className="info-bar">
-            <div className="info-chip"><span className="k">样本</span><span className="v">#{activeIdx}</span></div>
-            <div className="info-chip"><span className={`status-dot ${matchMeta[0]}`} /><span className="v">{matchMeta[1]}</span></div>
-            <div className="info-chip"><span className="k">FPS</span><span className="v">{activeSample.fps}</span></div>
-            <div className="info-chip"><span className="k">Phase</span><span className="v">{activeSample.workbench_phase}</span></div>
-            <div className="info-chip"><span className="k">Δ左</span><span className="v">{activeSample.left_delta_ms ?? '-'}ms</span></div>
-            <div className="info-chip"><span className="k">Δ右</span><span className="v">{activeSample.right_delta_ms ?? '-'}ms</span></div>
-            <div className="info-chip"><span className="k">头前倾</span><span className="v">{activeSample.head_tilt_deg}°</span></div>
-            <div className="info-chip"><span className="k">肩倾斜</span><span className="v">{activeSample.shoulder_tilt_deg}°</span></div>
-          </div>
+          {activeSample ? (
+            <>
+              <div className="info-bar">
+                <div className="info-chip"><span className="k">样本</span><span className="v">#{activeIdx}</span></div>
+                <div className="info-chip"><span className={`status-dot ${matchMeta[0]}`} /><span className="v">{matchMeta[1]}</span></div>
+                <div className="info-chip"><span className="k">FPS</span><span className="v">{activeSample.fps}</span></div>
+                <div className="info-chip"><span className="k">Phase</span><span className="v">{activeSample.workbench_phase}</span></div>
+                <div className="info-chip"><span className="k">Δ左</span><span className="v">{activeSample.left_delta_ms ?? '-'}ms</span></div>
+                <div className="info-chip"><span className="k">Δ右</span><span className="v">{activeSample.right_delta_ms ?? '-'}ms</span></div>
+                <div className="info-chip"><span className="k">头前倾</span><span className="v">{activeSample.head_tilt_deg}°</span></div>
+                <div className="info-chip"><span className="k">肩倾斜</span><span className="v">{activeSample.shoulder_tilt_deg}°</span></div>
+              </div>
 
           <div className="tabs">
             <button className={tabClass('skeleton')} type="button" onClick={() => setActiveTab('skeleton')}>骨架</button>
@@ -591,7 +597,10 @@ export default function MockWorkbench({ onPipelineReady }) {
           <div className={`panel${activeTab === 'raw' ? ' active' : ''}`}>
             <JsonView sample={activeSample} />
           </div>
-
+            </>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--muted)' }}>请抽取数据以开始调试</div>
+          )}
         </div>
       </div>
     </main>
