@@ -1,19 +1,7 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import '../styles/workflowEditor.css';
 import WorkflowNode from './WorkflowNode';
 import ContextMenu from './ContextMenu';
-
-// 节点类型定义
-const NODE_TYPES = {
-  start: { label: '开始', color: '#34d399', icon: '▶', desc: '工作流开始节点' },
-  end: { label: '结束', color: '#f87171', icon: '⏹', desc: '工作流结束节点' },
-  process: { label: '处理', color: '#6c8cff', icon: '⚙', desc: '数据处理节点' },
-  condition: { label: '条件', color: '#fb923c', icon: '❖', desc: '条件判断节点' },
-  input: { label: '输入', color: '#22d3ee', icon: '📥', desc: '数据输入节点' },
-  output: { label: '输出', color: '#a78bfa', icon: '📤', desc: '数据输出节点' },
-  transform: { label: '转换', color: '#f472b6', icon: '🔄', desc: '数据转换节点' },
-  merge: { label: '合并', color: '#a78bfa', icon: '⊕', desc: '数据合并节点' },
-};
 
 // 默认节点数据
 const DEFAULT_NODES = [
@@ -49,6 +37,22 @@ export default function WorkflowEditor({
   const [isPanning, setIsPanning] = useState(false);
   const panStartRef = useRef(null);
   const canvasRef = useRef(null);
+
+  // 主题感知的节点类型定义
+  const NODE_TYPES = useMemo(() => {
+    const style = getComputedStyle(document.documentElement);
+    const resolve = (cssVar) => style.getPropertyValue(cssVar).trim();
+    return {
+      start: { label: '开始', color: resolve('--green'), icon: '▶', desc: '工作流开始节点' },
+      end: { label: '结束', color: resolve('--red'), icon: '⏹', desc: '工作流结束节点' },
+      process: { label: '处理', color: resolve('--accent'), icon: '⚙', desc: '数据处理节点' },
+      condition: { label: '条件', color: resolve('--orange'), icon: '❖', desc: '条件判断节点' },
+      input: { label: '输入', color: resolve('--cyan'), icon: '📥', desc: '数据输入节点' },
+      output: { label: '输出', color: resolve('--purple'), icon: '📤', desc: '数据输出节点' },
+      transform: { label: '转换', color: resolve('--pink'), icon: '🔄', desc: '数据转换节点' },
+      merge: { label: '合并', color: resolve('--purple'), icon: '⊕', desc: '数据合并节点' },
+    };
+  }, [document.documentElement.dataset.theme]);
   const containerRef = useRef(null);
   const edgeDragRef = useRef(null);
 
@@ -541,7 +545,7 @@ export default function WorkflowEditor({
                   {/* 箭头 */}
                   <polygon
                     points="-6,-4 6,0 -6,4"
-                    fill={isSelected ? '#6c8cff' : '#6b7084'}
+                    fill={isSelected ? 'var(--accent)' : 'var(--muted)'}
                     transform={`translate(${center.x}, ${center.y}) rotate(0)`}
                     style={{ pointerEvents: 'none' }}
                   />
@@ -555,7 +559,7 @@ export default function WorkflowEditor({
                         deleteEdge(edge.id);
                       }}
                     >
-                      <circle r="10" fill="#f87171" stroke="#0a0c12" strokeWidth="2" />
+                      <circle r="10" fill="var(--red)" stroke="var(--bg)" strokeWidth="2" />
                       <text
                         textAnchor="middle"
                         dominantBaseline="central"
@@ -583,7 +587,7 @@ export default function WorkflowEditor({
                   cx={edgeDragState.canvasX}
                   cy={edgeDragState.canvasY}
                   r="6"
-                  fill="#6c8cff"
+                  fill="var(--accent)"
                   opacity="0.5"
                   style={{ pointerEvents: 'none' }}
                 />
@@ -641,7 +645,7 @@ export default function WorkflowEditor({
             style={{
               left: `${(node.x / 4000) * 100}%`,
               top: `${(node.y / 4000) * 100}%`,
-              background: NODE_TYPES[node.type]?.color || '#6c8cff',
+              background: NODE_TYPES[node.type]?.color || 'var(--accent)',
             }}
           />
         ))}

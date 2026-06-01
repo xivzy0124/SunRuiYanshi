@@ -1,17 +1,5 @@
 /* 统一布局样式 */
 .app-container {
-  --bg: #0a0c12;
-  --card: #12151e;
-  --border: #1e2234;
-  --text: #e2e4ea;
-  --muted: #6b7084;
-  --accent: #6c8cff;
-  --green: #34d399;
-  --orange: #fb923c;
-  --red: #f87171;
-  --purple: #a78bfa;
-  --cyan: #22d3ee;
-  --pink: #f472b6;
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);

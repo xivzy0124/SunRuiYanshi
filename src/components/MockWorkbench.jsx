@@ -293,6 +293,14 @@ function makeSample(index, abnormal = 0.15) {
 
 function drawCanvas(canvas, sample, xKey, mirror = false) {
   if (!canvas || !sample) return;
+  const cs = getComputedStyle(document.documentElement);
+  const divider = cs.getPropertyValue('--divider').trim();
+  const accent = cs.getPropertyValue('--accent').trim();
+  const cyan = cs.getPropertyValue('--cyan').trim();
+  const orange = cs.getPropertyValue('--orange').trim();
+  const red = cs.getPropertyValue('--red').trim();
+  const muted = cs.getPropertyValue('--muted').trim();
+
   const landmarks = JSON.parse(sample.landmarks_json);
   const lm = Object.fromEntries(landmarks.map((item) => [item.key, item]));
   const dpr = window.devicePixelRatio || 1;
@@ -305,7 +313,7 @@ function drawCanvas(canvas, sample, xKey, mirror = false) {
   const h = rect.height;
   ctx.clearRect(0, 0, w, h);
 
-  ctx.strokeStyle = '#1a1e2c';
+  ctx.strokeStyle = divider;
   ctx.lineWidth = 1;
   for (let i = 0; i <= 10; i += 1) {
     ctx.beginPath();
@@ -330,7 +338,8 @@ function drawCanvas(canvas, sample, xKey, mirror = false) {
       mirror ? w / 2 - (value - zMid) * (w - pad * 2) : w / 2 + (value - zMid) * (w - pad * 2);
   }
 
-  ctx.strokeStyle = 'rgba(108,140,255,0.5)';
+  ctx.strokeStyle = accent;
+  ctx.globalAlpha = 0.5;
   ctx.lineWidth = 2;
   BONES.forEach(([a, b]) => {
     if (!lm[a] || !lm[b]) return;
@@ -339,6 +348,7 @@ function drawCanvas(canvas, sample, xKey, mirror = false) {
     ctx.lineTo(toX(lm[b][xKey]), toY(lm[b].y));
     ctx.stroke();
   });
+  ctx.globalAlpha = 1;
 
   Object.keys(lm).forEach((key) => {
     const point = lm[key];
@@ -347,11 +357,13 @@ function drawCanvas(canvas, sample, xKey, mirror = false) {
     const vis = point.visibility || 0;
     ctx.beginPath();
     ctx.arc(x, y, 3 + vis * 3, 0, Math.PI * 2);
-    ctx.fillStyle = vis > 0.9 ? '#22d3ee' : vis > 0.7 ? '#fb923c' : '#f87171';
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = vis > 0.9 ? cyan : vis > 0.7 ? orange : red;
     ctx.fill();
   });
 
-  ctx.fillStyle = '#6b7084';
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = muted;
   ctx.font = '10px sans-serif';
   ctx.fillText(xKey === 'x' ? '← X →' : '← Z →', w / 2 - 20, h - 6);
   ctx.save();

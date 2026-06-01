@@ -6,7 +6,7 @@ const NAV_ITEMS = [
   { id: 'pipeline', label: '数据血缘', icon: '🔗', desc: 'ETL 流程与血缘图谱' },
 ];
 
-export default function Navigation({ currentPage, onPageChange, workflowStatus }) {
+export default function Navigation({ currentPage, onPageChange, workflowStatus, theme, onToggleTheme }) {
   const [showTooltip, setShowTooltip] = useState(null);
 
   return (
@@ -62,6 +62,13 @@ export default function Navigation({ currentPage, onPageChange, workflowStatus }
           <span className="status-dot online" />
           <span className="status-text">AI 就绪</span>
         </div>
+        <button
+          className="nav-btn theme-toggle"
+          onClick={onToggleTheme}
+          title={theme === 'dark' ? '切换到日间模式' : '切换到夜间模式'}
+        >
+          {theme === 'dark' ? '☀️' : '🌙'}
+        </button>
         <button className="nav-btn" title="设置">
           ⚙️
         </button>

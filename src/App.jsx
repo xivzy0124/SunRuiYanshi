@@ -7,11 +7,14 @@ import MockWorkbench from './components/MockWorkbench';
 import WorkflowEditor from './components/WorkflowEditor';
 import PipelinePage from './components/PipelinePage';
 import useWorkflowStore from './hooks/useWorkflowStore';
+import useTheme from './hooks/useTheme';
+import './styles/theme.css';
 import './styles/unified.css';
 import './styles/etl.css';
 
 function App() {
   const store = useWorkflowStore();
+  const { theme, toggleTheme } = useTheme();
   const [showTemplate, setShowTemplate] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
@@ -92,6 +95,8 @@ function App() {
         currentPage={store.currentPage}
         onPageChange={handlePageChange}
         workflowStatus={store.workflowStatus}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
 
       {/* 页面内容 */}

@@ -1,0 +1,192 @@
+/* ══════════════════════════════════════════════
+   主题系统 — 夜间模式（默认）/ 日间模式
+   ══════════════════════════════════════════════ */
+
+/* ─── 夜间模式（默认） ─── */
+:root,
+[data-theme="dark"] {
+  --bg: #0a0c12;
+  --card: #12151e;
+  --border: #1e2234;
+  --text: #e2e4ea;
+  --muted: #6b7084;
+  --accent: #6c8cff;
+  --accent2: #22d3ee;
+  --accent3: #a78bfa;
+  --green: #34d399;
+  --orange: #fb923c;
+  --red: #f87171;
+  --purple: #a78bfa;
+  --cyan: #22d3ee;
+  --pink: #f472b6;
+  --radius: 12px;
+  --shadow: rgba(0, 0, 0, 0.3);
+  --grid-color: rgba(30, 34, 52, 0.6);
+
+  /* 代码区域 */
+  --code-bg: #0a0c12;
+  --code-text: #a0a8c0;
+  --code-comment: #4a5068;
+
+  /* 表面层级 */
+  --surface-0: #0a0c12;
+  --surface-1: #0e1018;
+  --surface-2: #11141d;
+  --surface-3: #151a27;
+
+  /* 气泡 / 卡片边框 */
+  --bubble-border: #242a3b;
+  --bubble-bg: #151a27;
+  --bubble-text: #c7cede;
+
+  /* 指标条 */
+  --bar-bg: #1a1e2c;
+  --bar-border: #272d3f;
+
+  /* 阶段分割线 */
+  --divider: #1a1e2c;
+}
+
+/* ─── 日间模式 ─── */
+[data-theme="light"] {
+  --bg: #f0f2f5;
+  --card: #ffffff;
+  --border: #e2e8f0;
+  --text: #1a1a2e;
+  --muted: #64748b;
+  --accent: #4f6df5;
+  --accent2: #0891b2;
+  --accent3: #7c3aed;
+  --green: #059669;
+  --orange: #ea580c;
+  --red: #dc2626;
+  --purple: #7c3aed;
+  --cyan: #0891b2;
+  --pink: #db2777;
+  --radius: 12px;
+  --shadow: rgba(0, 0, 0, 0.08);
+  --grid-color: rgba(226, 232, 240, 0.6);
+
+  /* 代码区域 */
+  --code-bg: #f8fafc;
+  --code-text: #475569;
+  --code-comment: #94a3b8;
+
+  /* 表面层级 */
+  --surface-0: #f0f2f5;
+  --surface-1: #f8fafc;
+  --surface-2: #f1f5f9;
+  --surface-3: #e2e8f0;
+
+  /* 气泡 / 卡片边框 */
+  --bubble-border: #e2e8f0;
+  --bubble-bg: #f8fafc;
+  --bubble-text: #334155;
+
+  /* 指标条 */
+  --bar-bg: #e2e8f0;
+  --bar-border: #cbd5e1;
+
+  /* 阶段分割线 */
+  --divider: #e2e8f0;
+}
+
+/* ─── 全局过渡动画 ─── */
+*,
+*::before,
+*::after {
+  transition: background-color 0.3s ease, color 0.2s ease, border-color 0.3s ease,
+    box-shadow 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
+}
+
+/* 排除不需要过渡的元素 */
+input, textarea, select, button:active {
+  transition: none;
+}
+
+/* ─── 日间模式下的特定覆盖 ─── */
+
+/* 按钮 hover */
+[data-theme="light"] .ai-close-btn:hover,
+[data-theme="light"] .template-close:hover,
+[data-theme="light"] .history-close:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+/* 导航标签 */
+[data-theme="light"] .nav-tab:hover {
+  background: rgba(79, 109, 245, 0.08);
+}
+
+[data-theme="light"] .nav-tab.active {
+  background: rgba(79, 109, 245, 0.12);
+}
+
+/* 所有遮罩层统一降低不透明度 */
+[data-theme="light"] .detail-overlay,
+[data-theme="light"] .template-overlay,
+[data-theme="light"] .history-overlay {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+/* 弹窗阴影减轻 */
+[data-theme="light"] .detail-modal,
+[data-theme="light"] .template-modal,
+[data-theme="light"] .history-modal {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="light"] .ai-assistant-panel {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .context-menu {
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+[data-theme="light"] .nav-tooltip {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* 代码编辑器阴影减轻 */
+[data-theme="light"] .detail-code-editor,
+[data-theme="light"] .detail-code-editor:focus {
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+/* hover 阴影适配（accent 色在日间模式下变深，阴影透明度需降低） */
+[data-theme="light"] .node:hover,
+[data-theme="light"] .workflow-node:hover {
+  box-shadow: 0 4px 16px rgba(79, 109, 245, 0.1);
+}
+
+[data-theme="light"] .node.active,
+[data-theme="light"] .workflow-node.selected {
+  box-shadow: 0 0 0 1px var(--accent), 0 4px 16px rgba(79, 109, 245, 0.12);
+}
+
+[data-theme="light"] .template-card:hover {
+  box-shadow: 0 4px 16px rgba(79, 109, 245, 0.1);
+}
+
+/* AI 助手按钮阴影 */
+[data-theme="light"] .ai-assistant-btn {
+  box-shadow: 0 4px 20px rgba(79, 109, 245, 0.25);
+}
+
+[data-theme="light"] .ai-assistant-btn:hover {
+  box-shadow: 0 6px 24px rgba(79, 109, 245, 0.3);
+}
+
+/* 滚动条适配 */
+[data-theme="light"] * {
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}

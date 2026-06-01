@@ -2,7 +2,7 @@ import PipelineNode from './PipelineNode';
 import DataFlowArrow from './DataFlowArrow';
 
 export default function PipelineRow({ label, color, nodes, stream, activeId, onNodeClick }) {
-  const arrowColor = stream === 'a' ? '#6c8cff' : stream === 'b' ? '#22d3ee' : '#6b7084';
+  const arrowColor = stream === 'a' ? 'var(--accent)' : stream === 'b' ? 'var(--cyan)' : 'var(--muted)';
 
   return (
     <div className="pipeline-row">

@@ -82,8 +82,8 @@ export default function MergedPipeline({ activeId, onNodeClick }) {
   return (
     <div className="merged-pipeline">
       <div className="pipeline-label-inline">
-        <span className="pipeline-label-bar" style={{ background: '#34d399' }} />
-        <span className="pipeline-label-text" style={{ color: '#34d399' }}>
+        <span className="pipeline-label-bar" style={{ background: 'var(--green)' }} />
+        <span className="pipeline-label-text" style={{ color: 'var(--green)' }}>
           融合与输出
         </span>
       </div>

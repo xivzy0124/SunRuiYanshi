@@ -1,23 +1,10 @@
 /* 工作流编辑器样式 */
 .workflow-editor {
-  --wf-bg: #0a0c12;
-  --wf-card: #12151e;
-  --wf-border: #1e2234;
-  --wf-text: #e2e4ea;
-  --wf-muted: #6b7084;
-  --wf-accent: #6c8cff;
-  --wf-green: #34d399;
-  --wf-orange: #fb923c;
-  --wf-red: #f87171;
-  --wf-purple: #a78bfa;
-  --wf-cyan: #22d3ee;
-  --wf-pink: #f472b6;
-  --wf-grid-color: rgba(30, 34, 52, 0.6);
   width: 100vw;
   height: 100vh;
   overflow: hidden;
-  background: var(--wf-bg);
-  color: var(--wf-text);
+  background: var(--bg);
+  color: var(--text);
   font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
   position: relative;
 }
@@ -29,8 +16,8 @@
   left: 0;
   right: 0;
   height: 52px;
-  background: var(--wf-card);
-  border-bottom: 1px solid var(--wf-border);
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -47,11 +34,11 @@
 .toolbar-title {
   font-size: 16px;
   font-weight: 700;
-  color: var(--wf-text);
+  color: var(--text);
 }
 
 .toolbar-title span {
-  color: var(--wf-accent);
+  color: var(--accent);
 }
 
 .toolbar-right {
@@ -63,9 +50,9 @@
 .toolbar-btn {
   padding: 7px 14px;
   border-radius: 6px;
-  border: 1px solid var(--wf-border);
-  background: var(--wf-bg);
-  color: var(--wf-text);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
@@ -76,13 +63,13 @@
 }
 
 .toolbar-btn:hover {
-  border-color: var(--wf-accent);
+  border-color: var(--accent);
   background: rgba(108, 140, 255, 0.1);
 }
 
 .toolbar-btn.primary {
-  background: var(--wf-accent);
-  border-color: var(--wf-accent);
+  background: var(--accent);
+  border-color: var(--accent);
   color: #fff;
 }
 
@@ -114,7 +101,7 @@
   position: absolute;
   width: 4000px;
   height: 4000px;
-  background-image: radial-gradient(circle, var(--wf-grid-color) 1px, transparent 1px);
+  background-image: radial-gradient(circle, var(--grid-color) 1px, transparent 1px);
   background-size: 20px 20px;
   transform-origin: 0 0;
 }
@@ -123,8 +110,8 @@
 .workflow-node {
   position: absolute;
   min-width: 180px;
-  background: var(--wf-card);
-  border: 1px solid var(--wf-border);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 10px;
   cursor: grab;
   user-select: none;
@@ -139,13 +126,13 @@
 }
 
 .workflow-node:hover {
-  border-color: var(--wf-accent);
+  border-color: var(--accent);
   box-shadow: 0 4px 20px rgba(108, 140, 255, 0.15);
   z-index: 20;
 }
 
 .workflow-node.selected {
-  border-color: var(--wf-accent);
+  border-color: var(--accent);
   box-shadow:
     0 0 0 2px rgba(108, 140, 255, 0.3),
     0 4px 20px rgba(108, 140, 255, 0.2);
@@ -162,7 +149,7 @@
   align-items: center;
   gap: 8px;
   padding: 10px 14px;
-  border-bottom: 1px solid var(--wf-border);
+  border-bottom: 1px solid var(--border);
   border-radius: 10px 10px 0 0;
 }
 
@@ -190,7 +177,7 @@
   height: 20px;
   border: none;
   background: transparent;
-  color: var(--wf-muted);
+  color: var(--muted);
   cursor: pointer;
   border-radius: 4px;
   display: grid;
@@ -205,7 +192,7 @@
 }
 
 .node-delete:hover {
-  background: var(--wf-red);
+  background: var(--red);
   color: #fff;
 }
 
@@ -215,7 +202,7 @@
 
 .node-desc {
   font-size: 11px;
-  color: var(--wf-muted);
+  color: var(--muted);
   line-height: 1.4;
 }
 
@@ -224,7 +211,7 @@
   display: flex;
   justify-content: space-between;
   padding: 8px 14px;
-  border-top: 1px solid var(--wf-border);
+  border-top: 1px solid var(--border);
 }
 
 .port-group {
@@ -246,7 +233,7 @@
   align-items: center;
   gap: 6px;
   font-size: 11px;
-  color: var(--wf-muted);
+  color: var(--muted);
   cursor: crosshair;
   padding: 4px 8px;
   border-radius: 4px;
@@ -271,8 +258,8 @@
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  border: 2px solid var(--wf-muted);
-  background: var(--wf-bg);
+  border: 2px solid var(--muted);
+  background: var(--bg);
   transition: all 0.15s;
   position: relative;
 }
@@ -288,15 +275,15 @@
 }
 
 .port:hover .port-dot {
-  border-color: var(--wf-accent);
-  background: var(--wf-accent);
+  border-color: var(--accent);
+  background: var(--accent);
   box-shadow: 0 0 10px rgba(108, 140, 255, 0.6);
   transform: scale(1.2);
 }
 
 .port.connected .port-dot {
-  background: var(--wf-accent);
-  border-color: var(--wf-accent);
+  background: var(--accent);
+  border-color: var(--accent);
 }
 
 /* 连线样式 */
@@ -312,7 +299,7 @@
 
 .workflow-edge {
   fill: none;
-  stroke: var(--wf-muted);
+  stroke: var(--muted);
   stroke-width: 2;
   pointer-events: none;
   transition:
@@ -321,13 +308,13 @@
 }
 
 .workflow-edge.selected {
-  stroke: var(--wf-accent);
+  stroke: var(--accent);
   stroke-width: 3;
 }
 
 .workflow-edge-temp {
   fill: none;
-  stroke: var(--wf-accent);
+  stroke: var(--accent);
   stroke-width: 2;
   stroke-dasharray: 8 4;
   pointer-events: none;
@@ -343,8 +330,8 @@
 /* 右键菜单 */
 .context-menu {
   position: absolute;
-  background: var(--wf-card);
-  border: 1px solid var(--wf-border);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 6px;
   min-width: 180px;
@@ -367,7 +354,7 @@
 .context-menu-title {
   padding: 8px 10px 6px;
   font-size: 11px;
-  color: var(--wf-muted);
+  color: var(--muted);
   font-weight: 600;
 }
 
@@ -383,7 +370,7 @@
   background: none;
   width: 100%;
   text-align: left;
-  color: var(--wf-text);
+  color: var(--text);
   font-size: 13px;
 }
 
@@ -402,7 +389,7 @@
 
 .context-menu-divider {
   height: 1px;
-  background: var(--wf-border);
+  background: var(--border);
   margin: 4px 10px;
 }
 
@@ -413,8 +400,8 @@
   right: 20px;
   width: 180px;
   height: 120px;
-  background: var(--wf-card);
-  border: 1px solid var(--wf-border);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
   z-index: 50;
@@ -422,7 +409,7 @@
 
 .minimap-viewport {
   position: absolute;
-  border: 1px solid var(--wf-accent);
+  border: 1px solid var(--accent);
   background: rgba(108, 140, 255, 0.1);
   pointer-events: none;
 }
@@ -431,7 +418,7 @@
   position: absolute;
   width: 8px;
   height: 4px;
-  background: var(--wf-accent);
+  background: var(--accent);
   border-radius: 2px;
   opacity: 0.6;
 }
@@ -455,9 +442,9 @@
 .zoom-btn {
   width: 32px;
   height: 32px;
-  border: 1px solid var(--wf-border);
-  background: var(--wf-card);
-  color: var(--wf-text);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
   border-radius: 6px;
   cursor: pointer;
   display: grid;
@@ -467,14 +454,14 @@
 }
 
 .zoom-btn:hover {
-  border-color: var(--wf-accent);
+  border-color: var(--accent);
   background: rgba(108, 140, 255, 0.1);
 }
 
 .zoom-level {
   text-align: center;
   font-size: 11px;
-  color: var(--wf-muted);
+  color: var(--muted);
   padding: 4px 0;
 }
 
@@ -485,7 +472,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-  color: var(--wf-muted);
+  color: var(--muted);
   pointer-events: none;
   z-index: 0;
 }
@@ -504,7 +491,7 @@
 .workflow-hint .hint-shortcut {
   display: inline-block;
   padding: 2px 8px;
-  background: var(--wf-border);
+  background: var(--border);
   border-radius: 4px;
   font-size: 12px;
   margin: 0 2px;
@@ -513,7 +500,7 @@
 /* 工具栏信息 */
 .toolbar-info {
   font-size: 12px;
-  color: var(--wf-muted);
+  color: var(--muted);
   padding: 0 8px;
 }
 
@@ -523,7 +510,7 @@
   height: 20px;
   border: none;
   background: transparent;
-  color: var(--wf-muted);
+  color: var(--muted);
   cursor: pointer;
   border-radius: 4px;
   display: grid;
@@ -538,7 +525,7 @@
 }
 
 .node-config-btn:hover {
-  background: var(--wf-accent);
+  background: var(--accent);
   color: #fff;
 }
 
@@ -562,11 +549,11 @@
 }
 
 .config-label {
-  color: var(--wf-muted);
+  color: var(--muted);
 }
 
 .config-value {
-  color: var(--wf-accent);
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -574,15 +561,15 @@
 .node-config-panel {
   margin-top: 8px;
   padding: 10px;
-  background: var(--wf-bg);
-  border: 1px solid var(--wf-border);
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: 6px;
 }
 
 .config-title {
   font-size: 11px;
   font-weight: 700;
-  color: var(--wf-muted);
+  color: var(--muted);
   margin-bottom: 8px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -599,7 +586,7 @@
 .config-field label {
   display: block;
   font-size: 11px;
-  color: var(--wf-text);
+  color: var(--text);
   margin-bottom: 4px;
   font-weight: 500;
 }
@@ -608,10 +595,10 @@
 .config-field select {
   width: 100%;
   padding: 6px 8px;
-  background: var(--wf-card);
-  border: 1px solid var(--wf-border);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 4px;
-  color: var(--wf-text);
+  color: var(--text);
   font-size: 12px;
   outline: none;
   transition: border-color 0.2s;
@@ -619,11 +606,11 @@
 
 .config-field input:focus,
 .config-field select:focus {
-  border-color: var(--wf-accent);
+  border-color: var(--accent);
 }
 
 .config-field input::placeholder {
-  color: var(--wf-muted);
+  color: var(--muted);
   opacity: 0.6;
 }
 
@@ -632,8 +619,8 @@
 }
 
 .config-field select option {
-  background: var(--wf-card);
-  color: var(--wf-text);
+  background: var(--card);
+  color: var(--text);
 }
 
 /* 节点最小宽度调整 */

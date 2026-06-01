@@ -3,7 +3,7 @@ export const pipelineRows = [
     id: 'pressure',
     stream: 'a',
     label: '足底压力',
-    color: '#6c8cff',
+    color: 'var(--accent)',
     nodes: [
       {
         id: 'pressure-input',
@@ -40,7 +40,7 @@ export const pipelineRows = [
     id: 'posture',
     stream: 'b',
     label: '三维姿态',
-    color: '#22d3ee',
+    color: 'var(--cyan)',
     nodes: [
       {
         id: 'posture-input',

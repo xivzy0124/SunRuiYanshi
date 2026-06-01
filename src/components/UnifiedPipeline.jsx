@@ -1,14 +1,22 @@
 import PipelineNode from './PipelineNode';
 import { pipelineRows, mergedNodes } from '../data/pipelineData';
 
-const STAGES = [
-  { id: 'source', label: 'SOURCE', color: '#6c8cff' },
-  { id: 'filter', label: 'FILTER', color: '#818cf8' },
-  { id: 'map', label: 'MAP', color: '#22d3ee' },
-  { id: 'calc', label: 'CALC', color: '#a78bfa' },
-  { id: 'join', label: 'JOIN', color: '#34d399' },
-  { id: 'output', label: 'OUTPUT', color: '#fb923c' },
+const STAGE_VARS = [
+  { id: 'source', label: 'SOURCE', cssVar: '--accent' },
+  { id: 'filter', label: 'FILTER', cssVar: '--accent3' },
+  { id: 'map', label: 'MAP', cssVar: '--cyan' },
+  { id: 'calc', label: 'CALC', cssVar: '--purple' },
+  { id: 'join', label: 'JOIN', cssVar: '--green' },
+  { id: 'output', label: 'OUTPUT', cssVar: '--orange' },
 ];
+
+function getStages() {
+  const style = getComputedStyle(document.documentElement);
+  return STAGE_VARS.map((s) => ({
+    ...s,
+    color: style.getPropertyValue(s.cssVar).trim(),
+  }));
+}
 
 const PIPE_OUTER = 11.5;
 const PIPE_BODY = 6.8;
@@ -19,17 +27,15 @@ function FlowDots({ path, dur = 1.45, delay = 0 }) {
     <>
       <circle
         r={PIPE_DOT}
-        fill="#ffffff"
+        fill="var(--text)"
         opacity="0.98"
-        style={{ filter: 'drop-shadow(0 0 4px #ffffff)' }}
       >
         <animateMotion dur={`${dur}s`} repeatCount="indefinite" begin={`${delay}s`} path={path} />
       </circle>
       <circle
         r={PIPE_DOT}
-        fill="#ffffff"
+        fill="var(--text)"
         opacity="0.86"
-        style={{ filter: 'drop-shadow(0 0 4px #ffffff)' }}
       >
         <animateMotion
           dur={`${dur}s`}
@@ -84,7 +90,7 @@ function MergeConnector() {
       <svg viewBox="0 0 120 178" preserveAspectRatio="none" fill="none">
         <path
           d={topPipe}
-          stroke="#6c8cff"
+          stroke="var(--accent)"
           strokeWidth={PIPE_OUTER}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -92,7 +98,7 @@ function MergeConnector() {
         />
         <path
           d={bottomPipe}
-          stroke="#22d3ee"
+          stroke="var(--cyan)"
           strokeWidth={PIPE_OUTER}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -100,7 +106,7 @@ function MergeConnector() {
         />
         <path
           d={mergedPipe}
-          stroke="#34d399"
+          stroke="var(--green)"
           strokeWidth={PIPE_OUTER}
           strokeLinecap="butt"
           opacity="0.24"
@@ -108,7 +114,7 @@ function MergeConnector() {
 
         <path
           d={topPipe}
-          stroke="#6c8cff"
+          stroke="var(--accent)"
           strokeWidth={PIPE_BODY}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -116,7 +122,7 @@ function MergeConnector() {
         />
         <path
           d={bottomPipe}
-          stroke="#22d3ee"
+          stroke="var(--cyan)"
           strokeWidth={PIPE_BODY}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -124,7 +130,7 @@ function MergeConnector() {
         />
         <path
           d={mergedPipe}
-          stroke="#34d399"
+          stroke="var(--green)"
           strokeWidth={PIPE_BODY}
           strokeLinecap="butt"
           opacity="1"
@@ -239,6 +245,7 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
   const postureRow = pipelineRows.find((r) => r.id === 'posture');
   const joinNode = mergedNodes.find((n) => n.id === 'join');
   const outputNodes = mergedNodes.filter((n) => n.id !== 'join');
+  const stages = getStages();
 
   return (
     <div className="unified-pipeline">
@@ -246,7 +253,7 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
         <div className="pl-canvas">
           <div className="pl-stage-labels">
             <div className="pl-stage-spacer" />
-            {STAGES.map((stage) => (
+            {stages.map((stage) => (
               <div key={stage.id} className={`pl-stage-item pl-stage-${stage.id}`}>
                 <span
                   className="pl-stage-badge"

@@ -104,17 +104,18 @@ export default function ExecutionHistory({ onClose, onRerun }) {
   };
 
   const getStatusColor = (status) => {
+    const style = getComputedStyle(document.documentElement);
     switch (status) {
       case 'success':
-        return '#34d399';
+        return style.getPropertyValue('--green').trim();
       case 'error':
-        return '#f87171';
+        return style.getPropertyValue('--red').trim();
       case 'warning':
-        return '#fb923c';
+        return style.getPropertyValue('--orange').trim();
       case 'running':
-        return '#6c8cff';
+        return style.getPropertyValue('--accent').trim();
       default:
-        return '#6b7084';
+        return style.getPropertyValue('--muted').trim();
     }
   };
 

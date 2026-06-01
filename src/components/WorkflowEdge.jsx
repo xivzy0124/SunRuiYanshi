@@ -41,7 +41,7 @@ export default function WorkflowEdge({
           }}
           style={{ cursor: 'pointer' }}
         >
-          <circle r="10" fill="#f87171" />
+          <circle r="10" fill="var(--red)" />
           <text
             textAnchor="middle"
             dominantBaseline="central"

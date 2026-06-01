@@ -1,24 +1,24 @@
 import { useState, useRef, useCallback, useMemo } from 'react';
 import fieldDetails from '../data/detailData';
 
-// ─── Colors ───
+// ─── Colors (CSS 变量，跟随主题切换) ───
 const C = {
-  accent: '#6c8cff', // pressure
-  accent2: '#22d3ee', // posture
-  green: '#34d399', // join
-  orange: '#fb923c', // output
-  accent3: '#a78bfa', // calc
-  muted: '#6b7084',
+  accent: 'var(--accent)', // pressure
+  accent2: 'var(--cyan)', // posture
+  green: 'var(--green)', // join
+  orange: 'var(--orange)', // output
+  accent3: 'var(--accent3)', // calc
+  muted: 'var(--muted)',
 };
 
 // ─── Stage columns ───
 const STAGES = [
-  { id: 'source', label: 'SOURCE', x: 80, w: 170, color: '#6c8cff' },
-  { id: 'filter', label: 'FILTER', x: 310, w: 160, color: '#818cf8' },
-  { id: 'map', label: 'MAP', x: 530, w: 160, color: '#22d3ee' },
-  { id: 'calc', label: 'CALC', x: 750, w: 170, color: '#a78bfa' },
-  { id: 'join', label: 'JOIN', x: 990, w: 170, color: '#34d399' },
-  { id: 'output', label: 'OUTPUT', x: 1240, w: 210, color: '#fb923c' },
+  { id: 'source', label: 'SOURCE', x: 80, w: 170, color: 'var(--accent)' },
+  { id: 'filter', label: 'FILTER', x: 310, w: 160, color: 'var(--accent3)' },
+  { id: 'map', label: 'MAP', x: 530, w: 160, color: 'var(--cyan)' },
+  { id: 'calc', label: 'CALC', x: 750, w: 170, color: 'var(--purple)' },
+  { id: 'join', label: 'JOIN', x: 990, w: 170, color: 'var(--green)' },
+  { id: 'output', label: 'OUTPUT', x: 1240, w: 210, color: 'var(--orange)' },
 ];
 
 const SVG_W = 1500;
@@ -865,14 +865,14 @@ const PIPELINE_LABELS = {
 };
 
 const TRANSFORM_ICONS = {
-  passthrough: { icon: '→', bg: 'rgba(108,140,255,0.15)', fg: '#6c8cff' },
-  rename: { icon: '⇄', bg: 'rgba(34,211,238,0.15)', fg: '#22d3ee' },
-  derive: { icon: 'ƒ', bg: 'rgba(167,139,250,0.15)', fg: '#a78bfa' },
-  merge: { icon: '⨝', bg: 'rgba(52,211,153,0.15)', fg: '#34d399' },
-  carry: { icon: '↓', bg: 'rgba(107,112,132,0.15)', fg: '#6b7084' },
-  output: { icon: '◉', bg: 'rgba(251,146,60,0.15)', fg: '#fb923c' },
-  persist: { icon: 'D', bg: 'rgba(251,146,60,0.15)', fg: '#fb923c' },
-  expose: { icon: 'A', bg: 'rgba(251,146,60,0.15)', fg: '#fb923c' },
+  passthrough: { icon: '→', bg: 'rgba(108,140,255,0.15)', fg: 'var(--accent)' },
+  rename: { icon: '⇄', bg: 'rgba(34,211,238,0.15)', fg: 'var(--cyan)' },
+  derive: { icon: 'ƒ', bg: 'rgba(167,139,250,0.15)', fg: 'var(--accent3)' },
+  merge: { icon: '⨝', bg: 'rgba(52,211,153,0.15)', fg: 'var(--green)' },
+  carry: { icon: '↓', bg: 'rgba(107,112,132,0.15)', fg: 'var(--muted)' },
+  output: { icon: '◉', bg: 'rgba(251,146,60,0.15)', fg: 'var(--orange)' },
+  persist: { icon: 'D', bg: 'rgba(251,146,60,0.15)', fg: 'var(--orange)' },
+  expose: { icon: 'A', bg: 'rgba(251,146,60,0.15)', fg: 'var(--orange)' },
 };
 
 function FlowParticle({ path, color, dur = 2.5, delay = 0, opacity = 0.8 }) {
@@ -944,7 +944,7 @@ export default function LineageGraph() {
         <svg width={SVG_W} height={SVG_H} viewBox={`0 0 ${SVG_W} ${SVG_H}`} onClick={handleBgClick}>
           <defs>
             <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1a1e2c" strokeWidth="0.5" />
+              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--divider)" strokeWidth="0.5" />
             </pattern>
             <filter id="glow">
               <feGaussianBlur stdDeviation="3" result="blur" />
@@ -961,8 +961,8 @@ export default function LineageGraph() {
               </feMerge>
             </filter>
             <linearGradient id="stage-band-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#ffffff" stopOpacity="0.04" />
-              <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+              <stop offset="0%" stopColor="var(--text)" stopOpacity="0.04" />
+              <stop offset="100%" stopColor="var(--text)" stopOpacity="0" />
             </linearGradient>
           </defs>
 
@@ -1045,7 +1045,7 @@ export default function LineageGraph() {
                 y1={38}
                 x2={(stage.x + STAGES[i + 1].x) / 2 + (stage.w + STAGES[i + 1].w) / 4}
                 y2={SVG_H - 20}
-                stroke="#1a1e2c"
+                stroke="var(--divider)"
                 strokeWidth="1"
                 strokeDasharray="4 4"
               />
@@ -1105,7 +1105,7 @@ export default function LineageGraph() {
             y1={335}
             x2={920}
             y2={335}
-            stroke="#1e2235"
+            stroke="var(--divider)"
             strokeWidth="1.5"
             strokeDasharray="6 4"
           />
@@ -1232,7 +1232,7 @@ export default function LineageGraph() {
                   width={node.w}
                   height={node.h}
                   rx="5"
-                  fill="rgba(0,0,0,0.3)"
+                  fill="var(--shadow)"
                 />
                 {/* Card */}
                 <rect
@@ -1241,7 +1241,7 @@ export default function LineageGraph() {
                   width={node.w}
                   height={node.h}
                   rx="5"
-                  fill={isSelected ? '#1e2235' : '#181b24'}
+                  fill={isSelected ? 'var(--border)' : 'var(--card)'}
                   stroke={node.color}
                   strokeWidth={isSelected ? 2 : 1}
                   style={{ transition: 'stroke-width 0.15s' }}
@@ -1261,7 +1261,7 @@ export default function LineageGraph() {
                   x={node.x + 12}
                   y={node.y + node.h / 2 + 1}
                   dominantBaseline="central"
-                  fill={node.dropped ? '#4a5068' : '#e4e6ee'}
+                  fill={node.dropped ? 'var(--muted)' : 'var(--text)'}
                   fontSize="11"
                   fontWeight="600"
                   fontFamily="'Cascadia Code', 'Fira Code', monospace"
@@ -1278,7 +1278,7 @@ export default function LineageGraph() {
                     dominantBaseline="central"
                     fontSize="9"
                     fontFamily="'Cascadia Code', 'Fira Code', monospace"
-                    fill="#6b7084"
+                    fill="var(--muted)"
                     opacity="0.7"
                   >
                     {node.type}
@@ -1432,7 +1432,7 @@ export default function LineageGraph() {
                   borderRadius: 6,
                   fontSize: 11,
                   lineHeight: 1.6,
-                  color: '#e4e6ee',
+                  color: 'var(--text)',
                   overflow: 'auto',
                   fontFamily: "'Cascadia Code', 'Fira Code', monospace",
                 }}

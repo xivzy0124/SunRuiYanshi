@@ -1,22 +1,7 @@
-:root {
-  --bg: #0f1117;
-  --card: #181b24;
-  --border: #282d3e;
-  --accent: #6c8cff;
-  --accent2: #22d3ee;
-  --accent3: #a78bfa;
-  --green: #34d399;
-  --orange: #fb923c;
-  --red: #f87171;
-  --text: #e4e6ee;
-  --muted: #6b7084;
-  --radius: 12px;
-}
-
 /* ─── Scrollbar ─── */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #2a2f42 transparent;
+  scrollbar-color: var(--border) transparent;
 }
 
 ::-webkit-scrollbar {
@@ -29,12 +14,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #2a2f42;
+  background: var(--border);
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #3a4058;
+  background: var(--muted);
 }
 
 .etl-app {
@@ -1086,13 +1071,13 @@
 .detail-code-display {
   margin: 0;
   padding: 12px 14px;
-  background: #0a0c12;
+  background: var(--code-bg);
   border: 1px solid var(--border);
   border-radius: 8px;
   font-family: 'Cascadia Code', 'Fira Code', monospace;
   font-size: 12px;
   line-height: 1.6;
-  color: #a0a8c0;
+  color: var(--code-text);
   overflow-x: auto;
   white-space: pre;
 }
@@ -1101,13 +1086,13 @@
   width: 100%;
   min-height: 200px;
   padding: 14px 16px;
-  background: #0a0c12;
+  background: var(--code-bg);
   border: 1px solid rgba(108, 140, 255, 0.3);
   border-radius: 8px;
   font-family: 'Cascadia Code', 'Fira Code', monospace;
   font-size: 13px;
   line-height: 1.7;
-  color: #e4e6ee;
+  color: var(--text);
   resize: vertical;
   outline: none;
   box-shadow:
@@ -1143,7 +1128,7 @@
   color: var(--green);
 }
 .detail-code-display .cm {
-  color: #4a5068;
+  color: var(--code-comment);
 }
 .detail-code-display .num {
   color: var(--orange);
@@ -1203,12 +1188,12 @@
   display: none;
   margin-top: 8px;
   padding: 10px;
-  background: #0a0c12;
+  background: var(--code-bg);
   border-radius: 6px;
   font-family: 'Cascadia Code', 'Fira Code', monospace;
   font-size: 11px;
   line-height: 1.7;
-  color: #a0a8c0;
+  color: var(--code-text);
   overflow-x: auto;
   white-space: pre;
 }
@@ -1227,7 +1212,7 @@
   color: var(--green);
 }
 .ctrl-code .cm {
-  color: #4a5068;
+  color: var(--code-comment);
 }
 .ctrl-code .num {
   color: var(--orange);
@@ -1411,7 +1396,7 @@
 
 /* ─── Dropped Field Marker ─── */
 .field-dropped-x {
-  fill: #f87171;
+  fill: var(--red);
   font-size: 10px;
   font-weight: 700;
   pointer-events: none;
@@ -1423,7 +1408,7 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 1px;
-  fill: #6b7084;
+  fill: var(--muted);
 }
 
 /* ─── Pipeline Group Label ─── */
@@ -1437,12 +1422,12 @@
 .field-type-badge {
   font-size: 8px;
   font-family: 'Cascadia Code', 'Fira Code', monospace;
-  fill: #6b7084;
+  fill: var(--muted);
 }
 
 /* ─── Stage Column Divider ─── */
 .stage-divider {
-  stroke: #1a1e2c;
+  stroke: var(--divider);
   stroke-width: 1;
   stroke-dasharray: 4 4;
 }
