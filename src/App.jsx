@@ -1,38 +1,124 @@
 import { useState } from 'react';
-import Header from './components/Header';
-import SectionTitle from './components/SectionTitle';
-import UnifiedPipeline from './components/UnifiedPipeline';
-import DetailPanel from './components/DetailPanel';
-import LineageGraph from './components/LineageGraph';
+import Navigation from './components/Navigation';
+import AIAssistant from './components/AIAssistant';
+import WorkflowTemplate from './components/WorkflowTemplate';
+import ExecutionHistory from './components/ExecutionHistory';
 import MockWorkbench from './components/MockWorkbench';
+import WorkflowEditor from './components/WorkflowEditor';
+import PipelinePage from './components/PipelinePage';
+import useWorkflowStore from './hooks/useWorkflowStore';
+import './styles/unified.css';
 import './styles/etl.css';
 
-function PipelinePage() {
-  const [activeId, setActiveId] = useState(null);
+function App() {
+  const store = useWorkflowStore();
+  const [showTemplate, setShowTemplate] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
 
-  const handleNodeClick = (id) => {
-    setActiveId((prev) => (prev === id ? null : id));
+  // 页面切换处理
+  const handlePageChange = (page) => {
+    store.setCurrentPage(page);
+
+    // 更新步骤状态
+    if (page === 'monitor') {
+      store.updateStepStatus('monitor', 'completed');
+    } else if (page === 'workflow') {
+      store.updateStepStatus('workflow', 'running');
+    } else if (page === 'pipeline') {
+      store.updateStepStatus('execute', 'running');
+    }
+  };
+
+  // AI 生成工作流
+  const handleGenerateWorkflow = () => {
+    store.generateWorkflow();
+    // 自动切换到工作流页面
+    setTimeout(() => {
+      store.setCurrentPage('workflow');
+    }, 2500);
+  };
+
+  // 应用模板
+  const handleApplyTemplate = (template) => {
+    store.applyTemplate(template);
+    setShowTemplate(false);
+  };
+
+  // 执行工作流
+  const handleExecuteWorkflow = () => {
+    store.executeWorkflow();
+    store.setCurrentPage('pipeline');
+  };
+
+  // 重新执行
+  const handleRerun = (_exec) => {
+    store.executeWorkflow();
+    setShowHistory(false);
+  };
+
+  // 渲染当前页面
+  const renderCurrentPage = () => {
+    switch (store.currentPage) {
+      case 'monitor':
+        return (
+          <MockWorkbench
+            onPipelineReady={() => handlePageChange('pipeline')}
+            onOpenWorkflow={() => handlePageChange('workflow')}
+            onGenerateWorkflow={handleGenerateWorkflow}
+          />
+        );
+      case 'workflow':
+        return (
+          <WorkflowEditor
+            onBack={() => handlePageChange('monitor')}
+            onExecute={handleExecuteWorkflow}
+            onShowTemplate={() => setShowTemplate(true)}
+            onShowHistory={() => setShowHistory(true)}
+            workflowConfig={store.workflowConfig}
+            onConfigChange={store.updateWorkflowConfig}
+          />
+        );
+      case 'pipeline':
+        return <PipelinePage onBack={() => handlePageChange('workflow')} />;
+      default:
+        return null;
+    }
   };
 
   return (
-    <div className="etl-app">
-      <Header />
+    <div className="app-container">
+      {/* 顶部导航 */}
+      <Navigation
+        currentPage={store.currentPage}
+        onPageChange={handlePageChange}
+        workflowStatus={store.workflowStatus}
+      />
 
-      <UnifiedPipeline activeId={activeId} onNodeClick={handleNodeClick} />
+      {/* 页面内容 */}
+      <div className="page-content">{renderCurrentPage()}</div>
 
-      <DetailPanel activeId={activeId} onClose={() => setActiveId(null)} />
+      {/* AI 助手 */}
+      <AIAssistant
+        onGenerateWorkflow={handleGenerateWorkflow}
+        onApplyOptimization={(optimization) => {
+          console.log('Apply optimization:', optimization);
+        }}
+      />
 
-      <SectionTitle color="var(--accent3)" hint="字段级来源与去向追踪 · 9 衍生字段 · 6 阶段">全链路数据血缘图谱</SectionTitle>
-      <LineageGraph />
+      {/* 工作流模板库 */}
+      {showTemplate && (
+        <WorkflowTemplate
+          onApplyTemplate={handleApplyTemplate}
+          onClose={() => setShowTemplate(false)}
+        />
+      )}
+
+      {/* 执行历史 */}
+      {showHistory && (
+        <ExecutionHistory onClose={() => setShowHistory(false)} onRerun={handleRerun} />
+      )}
     </div>
   );
-}
-
-function App() {
-  const [page, setPage] = useState('workbench');
-  return page === 'pipeline'
-    ? <PipelinePage />
-    : <MockWorkbench onPipelineReady={() => setPage('pipeline')} />;
 }
 
 export default App;

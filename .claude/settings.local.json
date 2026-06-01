@@ -18,7 +18,11 @@
       "Bash(findstr \":517\")",
       "Bash(taskkill *)",
       "Bash(npx playwright *)",
-      "Bash(powershell *)"
+      "Bash(powershell *)",
+      "Bash(git pull *)",
+      "Bash(npm install *)",
+      "Bash(npx skills *)",
+      "Bash(git add *)"
     ]
   }
 }

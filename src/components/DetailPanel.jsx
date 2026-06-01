@@ -11,11 +11,14 @@ export default function DetailPanel({ activeId, onClose }) {
   const detail = detailData[activeId];
 
   const handleCodeChange = (index, value) => {
-    setCodeValues(prev => ({ ...prev, [index]: value }));
+    setCodeValues((prev) => ({ ...prev, [index]: value }));
   };
 
   const stripHtml = (html) => {
-    return html.replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').trim();
+    return html
+      .replace(/<[^>]+>/g, '')
+      .replace(/&nbsp;/g, ' ')
+      .trim();
   };
 
   const stripCodeHtml = (html) => {
@@ -33,9 +36,7 @@ export default function DetailPanel({ activeId, onClose }) {
         {/* Header */}
         <div className="detail-modal-header">
           <div className="detail-modal-title">
-            <span className="detail-modal-icon">
-              {detail.blocks[0]?.icon || '◆'}
-            </span>
+            <span className="detail-modal-icon">{detail.blocks[0]?.icon || '◆'}</span>
             <h3>{detail.title}</h3>
           </div>
           <div className="detail-modal-actions">
@@ -45,7 +46,9 @@ export default function DetailPanel({ activeId, onClose }) {
             >
               {editing ? '✓ 完成编辑' : '✎ 编辑配置'}
             </button>
-            <button className="detail-close-btn" onClick={onClose}>×</button>
+            <button className="detail-close-btn" onClick={onClose}>
+              ×
+            </button>
           </div>
         </div>
 
@@ -61,9 +64,7 @@ export default function DetailPanel({ activeId, onClose }) {
             {detail.blocks.map((block, i) => (
               <div key={i} className="detail-info-section">
                 <div className="detail-info-block-header">
-                  <span className={`detail-block-icon type-${block.type}`}>
-                    {block.icon}
-                  </span>
+                  <span className={`detail-block-icon type-${block.type}`}>{block.icon}</span>
                   <div>
                     <div className="detail-block-name">{block.name}</div>
                     <div className="detail-block-desc">{block.desc}</div>
@@ -79,45 +80,77 @@ export default function DetailPanel({ activeId, onClose }) {
                 <div className="detail-stat">
                   <span className="detail-stat-label">输入记录</span>
                   <span className="detail-stat-value">
-                    {activeId.includes('pressure-input') ? '10,752' :
-                     activeId.includes('posture-input') ? '8,144' :
-                     activeId.includes('pressure-filter') ? '10,752' :
-                     activeId.includes('posture-filter') ? '8,144' :
-                     activeId.includes('pressure-map') ? '9,238' :
-                     activeId.includes('posture-map') ? '6,947' :
-                     activeId.includes('pressure-calc') ? '9,107' :
-                     activeId.includes('posture-calc') ? '6,835' :
-                     activeId === 'join' ? '9,107 + 6,835' :
-                     activeId === 'db' ? '6,218' :
-                     activeId === 'api' ? '6,218' : '—'}
+                    {activeId.includes('pressure-input')
+                      ? '10,752'
+                      : activeId.includes('posture-input')
+                        ? '8,144'
+                        : activeId.includes('pressure-filter')
+                          ? '10,752'
+                          : activeId.includes('posture-filter')
+                            ? '8,144'
+                            : activeId.includes('pressure-map')
+                              ? '9,238'
+                              : activeId.includes('posture-map')
+                                ? '6,947'
+                                : activeId.includes('pressure-calc')
+                                  ? '9,107'
+                                  : activeId.includes('posture-calc')
+                                    ? '6,835'
+                                    : activeId === 'join'
+                                      ? '9,107 + 6,835'
+                                      : activeId === 'db'
+                                        ? '6,218'
+                                        : activeId === 'api'
+                                          ? '6,218'
+                                          : '—'}
                   </span>
                 </div>
                 <div className="detail-stat">
                   <span className="detail-stat-label">输出记录</span>
                   <span className="detail-stat-value accent">
-                    {activeId.includes('pressure-input') ? '10,752' :
-                     activeId.includes('posture-input') ? '8,144' :
-                     activeId.includes('pressure-filter') ? '9,238' :
-                     activeId.includes('posture-filter') ? '6,947' :
-                     activeId.includes('pressure-map') ? '9,107' :
-                     activeId.includes('posture-map') ? '6,835' :
-                     activeId.includes('pressure-calc') ? '9,107' :
-                     activeId.includes('posture-calc') ? '6,835' :
-                     activeId === 'join' ? '6,218' :
-                     activeId === 'db' ? '6,218' :
-                     activeId === 'api' ? '6,218' : '—'}
+                    {activeId.includes('pressure-input')
+                      ? '10,752'
+                      : activeId.includes('posture-input')
+                        ? '8,144'
+                        : activeId.includes('pressure-filter')
+                          ? '9,238'
+                          : activeId.includes('posture-filter')
+                            ? '6,947'
+                            : activeId.includes('pressure-map')
+                              ? '9,107'
+                              : activeId.includes('posture-map')
+                                ? '6,835'
+                                : activeId.includes('pressure-calc')
+                                  ? '9,107'
+                                  : activeId.includes('posture-calc')
+                                    ? '6,835'
+                                    : activeId === 'join'
+                                      ? '6,218'
+                                      : activeId === 'db'
+                                        ? '6,218'
+                                        : activeId === 'api'
+                                          ? '6,218'
+                                          : '—'}
                   </span>
                 </div>
                 <div className="detail-stat">
                   <span className="detail-stat-label">执行耗时</span>
                   <span className="detail-stat-value">
-                    {activeId.includes('input') ? '12ms' :
-                     activeId.includes('filter') ? '45ms' :
-                     activeId.includes('map') ? '38ms' :
-                     activeId.includes('calc') ? '67ms' :
-                     activeId === 'join' ? '124ms' :
-                     activeId === 'db' ? '89ms' :
-                     activeId === 'api' ? '156ms' : '—'}
+                    {activeId.includes('input')
+                      ? '12ms'
+                      : activeId.includes('filter')
+                        ? '45ms'
+                        : activeId.includes('map')
+                          ? '38ms'
+                          : activeId.includes('calc')
+                            ? '67ms'
+                            : activeId === 'join'
+                              ? '124ms'
+                              : activeId === 'db'
+                                ? '89ms'
+                                : activeId === 'api'
+                                  ? '156ms'
+                                  : '—'}
                   </span>
                 </div>
               </div>

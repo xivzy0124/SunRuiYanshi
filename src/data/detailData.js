@@ -100,7 +100,10 @@ const fieldDetails = {
     fieldType: 'int64',
     stage: 'filter',
     pipeline: 'pressure',
-    transform: { type: 'passthrough', rule: 'valid_frame == true && sensor_values not_null && len == 18 && range [0,4096]' },
+    transform: {
+      type: 'passthrough',
+      rule: 'valid_frame == true && sensor_values not_null && len == 18 && range [0,4096]',
+    },
     upstream: ['src:p:timestamp_ms'],
     downstream: ['map:p:ts'],
     code: `<span class="cm">// 足底压力 - 数据过滤（多维校验）</span>
@@ -122,7 +125,10 @@ const fieldDetails = {
     fieldType: 'float[]',
     stage: 'filter',
     pipeline: 'pressure',
-    transform: { type: 'passthrough', rule: 'valid_frame == true && sensor_values not_null && len == 18 && range [0,4096]' },
+    transform: {
+      type: 'passthrough',
+      rule: 'valid_frame == true && sensor_values not_null && len == 18 && range [0,4096]',
+    },
     upstream: ['src:p:sensor_values'],
     downstream: ['map:p:pressure_data'],
     code: `<span class="cm">// 同上过滤规则</span>`,
@@ -137,7 +143,12 @@ const fieldDetails = {
     fieldType: 'int64',
     stage: 'map',
     pipeline: 'pressure',
-    transform: { type: 'rename', from: 'timestamp_ms', to: 'ts', note: 'dedup on ts, merge by mean' },
+    transform: {
+      type: 'rename',
+      from: 'timestamp_ms',
+      to: 'ts',
+      note: 'dedup on ts, merge by mean',
+    },
     upstream: ['flt:p:timestamp_ms'],
     downstream: ['join:merged:ts'],
     code: `<span class="cm">// 足底压力 - 字段映射</span>
@@ -158,7 +169,15 @@ const fieldDetails = {
     pipeline: 'pressure',
     transform: { type: 'rename', from: 'sensor_values', to: 'pressure_data' },
     upstream: ['flt:p:sensor_values'],
-    downstream: ['calc:p:center_of_gravity', 'calc:p:cop_x', 'calc:p:cop_y', 'calc:p:pressure_index', 'calc:p:lr_balance', 'calc:p:peak_pressure', 'join:merged:pressure_data'],
+    downstream: [
+      'calc:p:center_of_gravity',
+      'calc:p:cop_x',
+      'calc:p:cop_y',
+      'calc:p:pressure_index',
+      'calc:p:lr_balance',
+      'calc:p:peak_pressure',
+      'join:merged:pressure_data',
+    ],
     code: `<span class="cm">// 同上映射规则</span>`,
   },
 
@@ -171,7 +190,11 @@ const fieldDetails = {
     fieldType: 'float',
     stage: 'calc',
     pipeline: 'pressure',
-    transform: { type: 'derive', formula: 'weighted_avg(pressure_data, sensor_positions)', precision: 2 },
+    transform: {
+      type: 'derive',
+      formula: 'weighted_avg(pressure_data, sensor_positions)',
+      precision: 2,
+    },
     upstream: ['map:p:pressure_data'],
     downstream: ['join:merged:calc_fields'],
     code: `<span class="cm">// 足底压力 - 字段计算</span>
@@ -217,7 +240,11 @@ const fieldDetails = {
     fieldType: 'float',
     stage: 'calc',
     pipeline: 'pressure',
-    transform: { type: 'derive', formula: 'std(pressure_data) / mean(pressure_data)', precision: 4 },
+    transform: {
+      type: 'derive',
+      formula: 'std(pressure_data) / mean(pressure_data)',
+      precision: 4,
+    },
     upstream: ['map:p:pressure_data'],
     downstream: ['join:merged:calc_fields'],
     code: `<span class="cm">// 压强分布指数</span>
@@ -234,7 +261,11 @@ const fieldDetails = {
     fieldType: 'float',
     stage: 'calc',
     pipeline: 'pressure',
-    transform: { type: 'derive', formula: 'sum(left_half_sensors) / sum(all_sensors)', range: [0, 1] },
+    transform: {
+      type: 'derive',
+      formula: 'sum(left_half_sensors) / sum(all_sensors)',
+      range: [0, 1],
+    },
     upstream: ['map:p:pressure_data'],
     downstream: ['join:merged:calc_fields'],
     code: `<span class="cm">// 左右脚压力平衡比</span>
@@ -358,7 +389,10 @@ const fieldDetails = {
     fieldType: 'int64',
     stage: 'filter',
     pipeline: 'posture',
-    transform: { type: 'passthrough', rule: 'landmarks[*].visibility >= 0.85 && landmarks not_null && len == 33 && coords in [-1,2]' },
+    transform: {
+      type: 'passthrough',
+      rule: 'landmarks[*].visibility >= 0.85 && landmarks not_null && len == 33 && coords in [-1,2]',
+    },
     upstream: ['src:o:frame_timestamp'],
     downstream: ['map:o:ts'],
     code: `<span class="cm">// 三维姿态 - 数据过滤（多维校验）</span>
@@ -382,7 +416,10 @@ const fieldDetails = {
     fieldType: 'object',
     stage: 'filter',
     pipeline: 'posture',
-    transform: { type: 'merge', rule: 'landmarks not_null && len == 33 && visibility >= 0.85 && coords in [-1,2]' },
+    transform: {
+      type: 'merge',
+      rule: 'landmarks not_null && len == 33 && visibility >= 0.85 && coords in [-1,2]',
+    },
     upstream: ['src:o:landmarks_xyz', 'src:o:landmarks_vis'],
     downstream: ['map:o:pose_data'],
     code: `<span class="cm">// 同上过滤规则</span>`,
@@ -397,7 +434,12 @@ const fieldDetails = {
     fieldType: 'int64',
     stage: 'map',
     pipeline: 'posture',
-    transform: { type: 'rename', from: 'frame_timestamp', to: 'ts', note: 'frame rate normalization, dedup on ts' },
+    transform: {
+      type: 'rename',
+      from: 'frame_timestamp',
+      to: 'ts',
+      note: 'frame rate normalization, dedup on ts',
+    },
     upstream: ['flt:o:frame_timestamp'],
     downstream: ['join:merged:ts'],
     code: `<span class="cm">// 三维姿态 - 字段映射</span>
@@ -418,7 +460,15 @@ const fieldDetails = {
     pipeline: 'posture',
     transform: { type: 'rename', from: 'landmarks', to: 'pose_data' },
     upstream: ['flt:o:landmarks'],
-    downstream: ['calc:o:joint_angle', 'calc:o:trunk_tilt', 'calc:o:head_forward_angle', 'calc:o:stride_angle', 'calc:o:step_frequency', 'calc:o:gait_speed', 'join:merged:pose_data'],
+    downstream: [
+      'calc:o:joint_angle',
+      'calc:o:trunk_tilt',
+      'calc:o:head_forward_angle',
+      'calc:o:stride_angle',
+      'calc:o:step_frequency',
+      'calc:o:gait_speed',
+      'join:merged:pose_data',
+    ],
     code: `<span class="cm">// 同上映射规则</span>`,
   },
 
@@ -447,7 +497,10 @@ const fieldDetails = {
     fieldType: 'float',
     stage: 'calc',
     pipeline: 'posture',
-    transform: { type: 'derive', formula: 'atan2(shoulder_mid_x - hip_mid_x, shoulder_mid_y - hip_mid_y)' },
+    transform: {
+      type: 'derive',
+      formula: 'atan2(shoulder_mid_x - hip_mid_x, shoulder_mid_y - hip_mid_y)',
+    },
     upstream: ['map:o:pose_data'],
     downstream: ['join:merged:calc_fields'],
     code: `<span class="cm">// 躯干倾斜角</span>
@@ -477,7 +530,11 @@ const fieldDetails = {
     fieldType: 'float',
     stage: 'calc',
     pipeline: 'posture',
-    transform: { type: 'derive', formula: 'acos(dot(hip_knee_L, hip_knee_R) / (|hip_knee_L| * |hip_knee_R|))', unit: 'degree' },
+    transform: {
+      type: 'derive',
+      formula: 'acos(dot(hip_knee_L, hip_knee_R) / (|hip_knee_L| * |hip_knee_R|))',
+      unit: 'degree',
+    },
     upstream: ['map:o:pose_data'],
     downstream: ['join:merged:calc_fields'],
     code: `<span class="cm">// 步幅角度</span>
@@ -511,7 +568,10 @@ const fieldDetails = {
     fieldType: 'float',
     stage: 'calc',
     pipeline: 'posture',
-    transform: { type: 'derive', formula: 'delta(hip_center) * fps / frame_count * calibration_factor' },
+    transform: {
+      type: 'derive',
+      formula: 'delta(hip_center) * fps / frame_count * calibration_factor',
+    },
     upstream: ['map:o:pose_data'],
     downstream: ['join:merged:calc_fields'],
     code: `<span class="cm">// 步态速度估算</span>
@@ -533,7 +593,13 @@ const fieldDetails = {
     fieldType: 'int64',
     stage: 'join',
     pipeline: 'merged',
-    transform: { type: 'merge', joinKey: 'ts', tolerance: '50ms', strategy: 'nearest', matchRate: '68.3%' },
+    transform: {
+      type: 'merge',
+      joinKey: 'ts',
+      tolerance: '50ms',
+      strategy: 'nearest',
+      matchRate: '68.3%',
+    },
     upstream: ['map:p:ts', 'map:o:ts'],
     downstream: ['out:db:t_fusion_health_dataset', 'out:api:latest', 'out:api:query'],
     code: `<span class="cm">// 双流 JOIN 融合 — 配置</span>
@@ -596,7 +662,20 @@ const fieldDetails = {
     stage: 'join',
     pipeline: 'merged',
     transform: { type: 'carry', from: 'calc stages' },
-    upstream: ['calc:p:center_of_gravity', 'calc:p:cop_x', 'calc:p:cop_y', 'calc:p:pressure_index', 'calc:p:lr_balance', 'calc:p:peak_pressure', 'calc:o:joint_angle', 'calc:o:trunk_tilt', 'calc:o:head_forward_angle', 'calc:o:stride_angle', 'calc:o:step_frequency', 'calc:o:gait_speed'],
+    upstream: [
+      'calc:p:center_of_gravity',
+      'calc:p:cop_x',
+      'calc:p:cop_y',
+      'calc:p:pressure_index',
+      'calc:p:lr_balance',
+      'calc:p:peak_pressure',
+      'calc:o:joint_angle',
+      'calc:o:trunk_tilt',
+      'calc:o:head_forward_angle',
+      'calc:o:stride_angle',
+      'calc:o:step_frequency',
+      'calc:o:gait_speed',
+    ],
     downstream: ['out:db:t_fusion_health_dataset'],
     code: `<span class="cm">// 所有计算字段随 JOIN 合并</span>`,
   },
@@ -611,7 +690,13 @@ const fieldDetails = {
     stage: 'output',
     pipeline: 'merged',
     transform: { type: 'persist', mode: 'append', batchSize: 1000, retention: '365d' },
-    upstream: ['join:merged:ts', 'join:merged:pressure_data', 'join:merged:pose_data', 'join:merged:match_quality', 'join:merged:calc_fields'],
+    upstream: [
+      'join:merged:ts',
+      'join:merged:pressure_data',
+      'join:merged:pose_data',
+      'join:merged:match_quality',
+      'join:merged:calc_fields',
+    ],
     downstream: [],
     code: `<span class="cm">// 数据入库</span>
 {

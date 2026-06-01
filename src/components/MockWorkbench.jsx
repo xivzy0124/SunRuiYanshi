@@ -38,22 +38,37 @@ const STANDING_LANDMARKS = {
 };
 
 const BONES = [
-  ['nose', 'left_eye_inner'], ['nose', 'right_eye_inner'],
-  ['left_eye_inner', 'left_eye'], ['left_eye', 'left_eye_outer'],
-  ['right_eye_inner', 'right_eye'], ['right_eye', 'right_eye_outer'],
-  ['left_eye_outer', 'left_ear'], ['right_eye_outer', 'right_ear'],
+  ['nose', 'left_eye_inner'],
+  ['nose', 'right_eye_inner'],
+  ['left_eye_inner', 'left_eye'],
+  ['left_eye', 'left_eye_outer'],
+  ['right_eye_inner', 'right_eye'],
+  ['right_eye', 'right_eye_outer'],
+  ['left_eye_outer', 'left_ear'],
+  ['right_eye_outer', 'right_ear'],
   ['mouth_left', 'mouth_right'],
   ['left_shoulder', 'right_shoulder'],
-  ['left_shoulder', 'left_elbow'], ['left_elbow', 'left_wrist'],
-  ['right_shoulder', 'right_elbow'], ['right_elbow', 'right_wrist'],
-  ['left_wrist', 'left_pinky'], ['left_wrist', 'left_index'], ['left_wrist', 'left_thumb'],
-  ['right_wrist', 'right_pinky'], ['right_wrist', 'right_index'], ['right_wrist', 'right_thumb'],
-  ['left_shoulder', 'left_hip'], ['right_shoulder', 'right_hip'],
+  ['left_shoulder', 'left_elbow'],
+  ['left_elbow', 'left_wrist'],
+  ['right_shoulder', 'right_elbow'],
+  ['right_elbow', 'right_wrist'],
+  ['left_wrist', 'left_pinky'],
+  ['left_wrist', 'left_index'],
+  ['left_wrist', 'left_thumb'],
+  ['right_wrist', 'right_pinky'],
+  ['right_wrist', 'right_index'],
+  ['right_wrist', 'right_thumb'],
+  ['left_shoulder', 'left_hip'],
+  ['right_shoulder', 'right_hip'],
   ['left_hip', 'right_hip'],
-  ['left_hip', 'left_knee'], ['left_knee', 'left_ankle'],
-  ['right_hip', 'right_knee'], ['right_knee', 'right_ankle'],
-  ['left_ankle', 'left_heel'], ['right_ankle', 'right_heel'],
-  ['left_heel', 'left_foot_index'], ['right_heel', 'right_foot_index'],
+  ['left_hip', 'left_knee'],
+  ['left_knee', 'left_ankle'],
+  ['right_hip', 'right_knee'],
+  ['right_knee', 'right_ankle'],
+  ['left_ankle', 'left_heel'],
+  ['right_ankle', 'right_heel'],
+  ['left_heel', 'left_foot_index'],
+  ['right_heel', 'right_foot_index'],
 ];
 
 const METRICS_DEF = [
@@ -74,27 +89,66 @@ const METRICS_DEF = [
 ];
 
 const LEFT_ZONES = [
-  'forefootBottomLateral', 'forefootTopLateral', 'forefootBottomOuterMid', 'forefootTopOuterMid',
-  'forefootBottomInnerMid', 'forefootTopInnerMid', 'forefootBottomMedial', 'forefootTopMedial',
-  'midfootBottomLateral', 'midfootTopLateral', 'midfootBottomCenter', 'midfootTopCenter',
-  'midfootBottomMedial', 'midfootTopMedial',
-  'heelBottomLateral', 'heelTopLateral', 'heelBottomMedial', 'heelTopMedial',
+  'forefootBottomLateral',
+  'forefootTopLateral',
+  'forefootBottomOuterMid',
+  'forefootTopOuterMid',
+  'forefootBottomInnerMid',
+  'forefootTopInnerMid',
+  'forefootBottomMedial',
+  'forefootTopMedial',
+  'midfootBottomLateral',
+  'midfootTopLateral',
+  'midfootBottomCenter',
+  'midfootTopCenter',
+  'midfootBottomMedial',
+  'midfootTopMedial',
+  'heelBottomLateral',
+  'heelTopLateral',
+  'heelBottomMedial',
+  'heelTopMedial',
 ];
 
 const RIGHT_ZONES = [
-  'forefootBottomMedial', 'forefootTopMedial', 'forefootBottomInnerMid', 'forefootTopInnerMid',
-  'forefootBottomOuterMid', 'forefootTopOuterMid', 'forefootBottomLateral', 'forefootTopLateral',
-  'midfootBottomMedial', 'midfootTopMedial', 'midfootBottomCenter', 'midfootTopCenter',
-  'midfootBottomLateral', 'midfootTopLateral',
-  'heelBottomMedial', 'heelTopMedial', 'heelBottomLateral', 'heelTopLateral',
+  'forefootBottomMedial',
+  'forefootTopMedial',
+  'forefootBottomInnerMid',
+  'forefootTopInnerMid',
+  'forefootBottomOuterMid',
+  'forefootTopOuterMid',
+  'forefootBottomLateral',
+  'forefootTopLateral',
+  'midfootBottomMedial',
+  'midfootTopMedial',
+  'midfootBottomCenter',
+  'midfootTopCenter',
+  'midfootBottomLateral',
+  'midfootTopLateral',
+  'heelBottomMedial',
+  'heelTopMedial',
+  'heelBottomLateral',
+  'heelTopLateral',
 ];
 
 const ZONE_LABELS = {
-  forefootTopMedial: '前掌上-内', forefootTopInnerMid: '前掌上-内中', forefootTopOuterMid: '前掌上-外中', forefootTopLateral: '前掌上-外',
-  forefootBottomMedial: '前掌下-内', forefootBottomInnerMid: '前掌下-内中', forefootBottomOuterMid: '前掌下-外中', forefootBottomLateral: '前掌下-外',
-  midfootTopMedial: '中足上-内', midfootTopCenter: '中足上-中', midfootTopLateral: '中足上-外',
-  midfootBottomMedial: '中足下-内', midfootBottomCenter: '中足下-中', midfootBottomLateral: '中足下-外',
-  heelTopMedial: '后跟上-内', heelTopLateral: '后跟上-外', heelBottomMedial: '后跟下-内', heelBottomLateral: '后跟下-外',
+  forefootTopMedial: '前掌上-内',
+  forefootTopInnerMid: '前掌上-内中',
+  forefootTopOuterMid: '前掌上-外中',
+  forefootTopLateral: '前掌上-外',
+  forefootBottomMedial: '前掌下-内',
+  forefootBottomInnerMid: '前掌下-内中',
+  forefootBottomOuterMid: '前掌下-外中',
+  forefootBottomLateral: '前掌下-外',
+  midfootTopMedial: '中足上-内',
+  midfootTopCenter: '中足上-中',
+  midfootTopLateral: '中足上-外',
+  midfootBottomMedial: '中足下-内',
+  midfootBottomCenter: '中足下-中',
+  midfootBottomLateral: '中足下-外',
+  heelTopMedial: '后跟上-内',
+  heelTopLateral: '后跟上-外',
+  heelBottomMedial: '后跟下-内',
+  heelBottomLateral: '后跟下-外',
 };
 
 const FOOT_ROW_SIZES = [4, 4, 3, 3, 2, 2];
@@ -158,11 +212,24 @@ function jitter(value, amount = 0.006) {
 
 function genPressures() {
   const ranges = [
-    [800, 2500], [600, 2000], [400, 1500], [300, 1200],
-    [1000, 3000], [800, 2500], [500, 1800], [300, 1200],
-    [0, 400], [0, 300], [0, 200],
-    [100, 600], [50, 400], [0, 200],
-    [800, 2200], [600, 1800], [1000, 2800], [800, 2200],
+    [800, 2500],
+    [600, 2000],
+    [400, 1500],
+    [300, 1200],
+    [1000, 3000],
+    [800, 2500],
+    [500, 1800],
+    [300, 1200],
+    [0, 400],
+    [0, 300],
+    [0, 200],
+    [100, 600],
+    [50, 400],
+    [0, 200],
+    [800, 2200],
+    [600, 1800],
+    [1000, 2800],
+    [800, 2200],
   ];
   return ranges.map(([lo, hi]) => Math.round(randomBetween(lo, hi, 0)));
 }
@@ -181,7 +248,8 @@ function makeSample(index, abnormal = 0.15) {
   const ts = Date.now() + index * 33;
   const off = () => Math.round(Math.random() * 160 - 80);
   const abnormalBoost = Math.random() < abnormal ? 1.8 : 1;
-  const matchStatus = Math.random() > 0.12 ? 'full' : (Math.random() > 0.5 ? 'left_only' : 'right_only');
+  const matchStatus =
+    Math.random() > 0.12 ? 'full' : Math.random() > 0.5 ? 'left_only' : 'right_only';
   const leftPressures = matchStatus === 'right_only' ? [] : genPressures();
   const rightPressures = matchStatus === 'left_only' ? [] : genPressures();
 
@@ -254,11 +322,12 @@ function drawCanvas(canvas, sample, xKey, mirror = false) {
   const toY = (value) => pad + value * (h - pad * 2);
   let toX;
   if (xKey === 'x') {
-    toX = (value) => mirror ? (w - pad - value * (w - pad * 2)) : (pad + value * (w - pad * 2));
+    toX = (value) => (mirror ? w - pad - value * (w - pad * 2) : pad + value * (w - pad * 2));
   } else {
     const zs = Object.values(lm).map((item) => item.z);
     const zMid = (Math.min(...zs) + Math.max(...zs)) / 2;
-    toX = (value) => mirror ? (w / 2 - (value - zMid) * (w - pad * 2)) : (w / 2 + (value - zMid) * (w - pad * 2));
+    toX = (value) =>
+      mirror ? w / 2 - (value - zMid) * (w - pad * 2) : w / 2 + (value - zMid) * (w - pad * 2);
   }
 
   ctx.strokeStyle = 'rgba(108,140,255,0.5)';
@@ -294,19 +363,21 @@ function drawCanvas(canvas, sample, xKey, mirror = false) {
 
 function JsonView({ sample }) {
   const json = JSON.stringify(sample, null, 2);
-  return (
-    <pre className="json-box">
-      {json}
-    </pre>
-  );
+  return <pre className="json-box">{json}</pre>;
 }
 
-export default function MockWorkbench({ onPipelineReady }) {
+export default function MockWorkbench({
+  onPipelineReady,
+  onOpenWorkflow,
+  onGenerateWorkflow: _onGenerateWorkflow,
+}) {
   const [samples, setSamples] = useState([]);
   const [activeIdx, setActiveIdx] = useState(0);
   const [activeTab, setActiveTab] = useState('skeleton');
   const [autoTimer, setAutoTimer] = useState(null);
-  const [command, setCommand] = useState('请根据当前融合样本，自动生成足底压力与三维姿态的 ETL 流水线。');
+  const [command, setCommand] = useState(
+    '请根据当前融合样本，自动生成足底压力与三维姿态的 ETL 流水线。'
+  );
   const [submittedCommand, setSubmittedCommand] = useState('');
   const [typed, setTyped] = useState('');
   const [aiState, setAiState] = useState('idle');
@@ -317,12 +388,14 @@ export default function MockWorkbench({ onPipelineReady }) {
   const activeSample = samples[activeIdx] || samples[0] || null;
 
   const matchMeta = useMemo(() => {
-    return {
-      full: ['status-ok', '完整'],
-      left_only: ['status-warn', '仅左'],
-      right_only: ['status-warn', '仅右'],
-      missed: ['status-err', '未匹配'],
-    }[activeSample?.match_status] || ['status-ok', '完整'];
+    return (
+      {
+        full: ['status-ok', '完整'],
+        left_only: ['status-warn', '仅左'],
+        right_only: ['status-warn', '仅右'],
+        missed: ['status-err', '未匹配'],
+      }[activeSample?.match_status] || ['status-ok', '完整']
+    );
   }, [activeSample]);
 
   const metricRows = useMemo(() => {
@@ -363,10 +436,13 @@ export default function MockWorkbench({ onPipelineReady }) {
     return () => window.removeEventListener('resize', drawAll);
   }, [activeSample, activeTab]);
 
-  useEffect(() => () => {
-    if (autoTimer) window.clearInterval(autoTimer);
-    if (aiTimerRef.current) window.clearInterval(aiTimerRef.current);
-  }, [autoTimer]);
+  useEffect(
+    () => () => {
+      if (autoTimer) window.clearInterval(autoTimer);
+      if (aiTimerRef.current) window.clearInterval(aiTimerRef.current);
+    },
+    [autoTimer]
+  );
 
   useEffect(() => {
     if (!chatThreadRef.current) return;
@@ -421,19 +497,40 @@ export default function MockWorkbench({ onPipelineReady }) {
       <div className="header">
         <h1>数据调试中心</h1>
         <div className="controls">
-          <button className="btn btn-primary" type="button" onClick={() => fetchSamples()}>抽取数据</button>
-          <button className="btn btn-secondary" type="button" onClick={fetchInterval}>完整会话</button>
-          <button className="btn btn-secondary" type="button" onClick={toggleAuto}>{autoTimer ? '停止刷新' : '自动刷新'}</button>
+          <button className="btn btn-primary" type="button" onClick={() => fetchSamples()}>
+            抽取数据
+          </button>
+          <button className="btn btn-secondary" type="button" onClick={fetchInterval}>
+            完整会话
+          </button>
+          <button className="btn btn-secondary" type="button" onClick={toggleAuto}>
+            {autoTimer ? '停止刷新' : '自动刷新'}
+          </button>
+          <button
+            className="btn btn-secondary"
+            type="button"
+            onClick={onOpenWorkflow}
+            style={{ marginLeft: 8 }}
+          >
+            ⚡ 工作流编辑器
+          </button>
         </div>
       </div>
 
       <div className="main">
         <div className="sidebar">
           {samples.length === 0 ? (
-            <div style={{ color: 'var(--muted)', padding: 20, textAlign: 'center' }}>暂无数据，请点击"抽取数据"或"自动刷新"</div>
+            <div style={{ color: 'var(--muted)', padding: 20, textAlign: 'center' }}>
+              暂无数据，请点击"抽取数据"或"自动刷新"
+            </div>
           ) : (
             samples.map((sample, index) => {
-              const matchText = { full: '完整', left_only: '仅左', right_only: '仅右', missed: '未匹配' }[sample.match_status];
+              const matchText = {
+                full: '完整',
+                left_only: '仅左',
+                right_only: '仅右',
+                missed: '未匹配',
+              }[sample.match_status];
               return (
                 <button
                   className={`sample-card ${index === activeIdx ? 'active' : ''}`}
@@ -442,9 +539,18 @@ export default function MockWorkbench({ onPipelineReady }) {
                   onClick={() => setActiveIdx(index)}
                 >
                   <div style={{ fontWeight: 600 }}>样本 #{index}</div>
-                  <div className="row"><span className="label">匹配</span><span className={`match match-${sample.match_status}`}>{matchText}</span></div>
-                  <div className="row"><span className="label">头前倾</span><span>{sample.head_tilt_deg}°</span></div>
-                  <div className="row"><span className="label">FPS</span><span>{sample.fps}</span></div>
+                  <div className="row">
+                    <span className="label">匹配</span>
+                    <span className={`match match-${sample.match_status}`}>{matchText}</span>
+                  </div>
+                  <div className="row">
+                    <span className="label">头前倾</span>
+                    <span>{sample.head_tilt_deg}°</span>
+                  </div>
+                  <div className="row">
+                    <span className="label">FPS</span>
+                    <span>{sample.fps}</span>
+                  </div>
                 </button>
               );
             })
@@ -455,151 +561,251 @@ export default function MockWorkbench({ onPipelineReady }) {
           {activeSample ? (
             <>
               <div className="info-bar">
-                <div className="info-chip"><span className="k">样本</span><span className="v">#{activeIdx}</span></div>
-                <div className="info-chip"><span className={`status-dot ${matchMeta[0]}`} /><span className="v">{matchMeta[1]}</span></div>
-                <div className="info-chip"><span className="k">FPS</span><span className="v">{activeSample.fps}</span></div>
-                <div className="info-chip"><span className="k">Phase</span><span className="v">{activeSample.workbench_phase}</span></div>
-                <div className="info-chip"><span className="k">Δ左</span><span className="v">{activeSample.left_delta_ms ?? '-'}ms</span></div>
-                <div className="info-chip"><span className="k">Δ右</span><span className="v">{activeSample.right_delta_ms ?? '-'}ms</span></div>
-                <div className="info-chip"><span className="k">头前倾</span><span className="v">{activeSample.head_tilt_deg}°</span></div>
-                <div className="info-chip"><span className="k">肩倾斜</span><span className="v">{activeSample.shoulder_tilt_deg}°</span></div>
+                <div className="info-chip">
+                  <span className="k">样本</span>
+                  <span className="v">#{activeIdx}</span>
+                </div>
+                <div className="info-chip">
+                  <span className={`status-dot ${matchMeta[0]}`} />
+                  <span className="v">{matchMeta[1]}</span>
+                </div>
+                <div className="info-chip">
+                  <span className="k">FPS</span>
+                  <span className="v">{activeSample.fps}</span>
+                </div>
+                <div className="info-chip">
+                  <span className="k">Phase</span>
+                  <span className="v">{activeSample.workbench_phase}</span>
+                </div>
+                <div className="info-chip">
+                  <span className="k">Δ左</span>
+                  <span className="v">{activeSample.left_delta_ms ?? '-'}ms</span>
+                </div>
+                <div className="info-chip">
+                  <span className="k">Δ右</span>
+                  <span className="v">{activeSample.right_delta_ms ?? '-'}ms</span>
+                </div>
+                <div className="info-chip">
+                  <span className="k">头前倾</span>
+                  <span className="v">{activeSample.head_tilt_deg}°</span>
+                </div>
+                <div className="info-chip">
+                  <span className="k">肩倾斜</span>
+                  <span className="v">{activeSample.shoulder_tilt_deg}°</span>
+                </div>
               </div>
 
-          <div className="tabs">
-            <button className={tabClass('skeleton')} type="button" onClick={() => setActiveTab('skeleton')}>骨架</button>
-            <button className={tabClass('metrics')} type="button" onClick={() => setActiveTab('metrics')}>体态指标</button>
-            <button className={tabClass('pressure')} type="button" onClick={() => setActiveTab('pressure')}>足底压力</button>
-            <button className={tabClass('raw')} type="button" onClick={() => setActiveTab('raw')}>原始JSON</button>
-          </div>
+              <div className="tabs">
+                <button
+                  className={tabClass('skeleton')}
+                  type="button"
+                  onClick={() => setActiveTab('skeleton')}
+                >
+                  骨架
+                </button>
+                <button
+                  className={tabClass('metrics')}
+                  type="button"
+                  onClick={() => setActiveTab('metrics')}
+                >
+                  体态指标
+                </button>
+                <button
+                  className={tabClass('pressure')}
+                  type="button"
+                  onClick={() => setActiveTab('pressure')}
+                >
+                  足底压力
+                </button>
+                <button
+                  className={tabClass('raw')}
+                  type="button"
+                  onClick={() => setActiveTab('raw')}
+                >
+                  原始JSON
+                </button>
+              </div>
 
-          <div className={`panel${activeTab === 'skeleton' ? ' active' : ''}`}>
-            <div className="canvas-wrap">
-              <div className="canvas-box"><h3>正面视图 (XY)</h3><canvas ref={frontRef} /></div>
-              <div className="canvas-box"><h3>右侧面 (ZY)</h3><canvas ref={rightRef} /></div>
-              <div className="canvas-box ai-canvas-box">
-                <h3>AI 编排</h3>
-                <div className="ai-panel">
-                  <div className="ai-chat-top">
-                    <div className="ai-avatar">AI</div>
-                    <div>
-                      <div className="ai-name">deepseek v4</div>
-                      <div className="ai-presence"><span />实时编排在线</div>
-                    </div>
+              <div className={`panel${activeTab === 'skeleton' ? ' active' : ''}`}>
+                <div className="canvas-wrap">
+                  <div className="canvas-box">
+                    <h3>正面视图 (XY)</h3>
+                    <canvas ref={frontRef} />
                   </div>
-                  <div className="ai-chat-thread" ref={chatThreadRef}>
-                    <div className="chat-message assistant">
-                      <div className="chat-bubble">当前融合样本已接入，足底压力流与三维姿态流保持同步监听。</div>
-                    </div>
-                    {submittedCommand && (
-                      <div className="chat-message user">
-                        <div className="chat-bubble">{submittedCommand}</div>
-                      </div>
-                    )}
-                    {(typed || aiState === 'streaming' || aiState === 'done') && (
-                      <div className="chat-message assistant">
-                        <div className="chat-bubble ai-reply">
-                          {typed}
-                          {aiState === 'streaming' && <span className="caret" />}
+                  <div className="canvas-box">
+                    <h3>右侧面 (ZY)</h3>
+                    <canvas ref={rightRef} />
+                  </div>
+                  <div className="canvas-box ai-canvas-box">
+                    <h3>AI 编排</h3>
+                    <div className="ai-panel">
+                      <div className="ai-chat-top">
+                        <div className="ai-avatar">AI</div>
+                        <div>
+                          <div className="ai-name">deepseek v4</div>
+                          <div className="ai-presence">
+                            <span />
+                            实时编排在线
+                          </div>
                         </div>
                       </div>
-                    )}
-                  </div>
-                  <div className="ai-composer">
-                    <textarea
-                      value={command}
-                      onChange={(event) => setCommand(event.target.value)}
-                      disabled={aiState === 'streaming'}
-                      placeholder="输入力姿融合 ETL 指令"
-                      rows={2}
-                    />
-                    <button className="btn btn-primary ai-send" type="button" onClick={startAi} disabled={aiState === 'streaming' || !command.trim()}>
-                      {aiState === 'streaming' ? '生成中' : '发送'}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className={`panel${activeTab === 'metrics' ? ' active' : ''}`}>
-            <div className="metrics-dashboard">
-              <div className="metric-summary-row">
-                <div className={`metric-summary ${metricSummary.abnormal ? 'warn' : 'ok'}`}>
-                  <span className="summary-label">综合状态</span>
-                  <strong>{metricSummary.state}</strong>
-                  <span className="summary-sub">异常 {metricSummary.abnormal}/{metricRows.length}</span>
-                </div>
-                <div className="metric-summary">
-                  <span className="summary-label">姿态角度</span>
-                  <strong>{metricSummary.angleOk}/{metricSummary.angleTotal}</strong>
-                  <span className="summary-sub">头颈肩核心角度</span>
-                </div>
-                <div className="metric-summary">
-                  <span className="summary-label">身体尺度</span>
-                  <strong>{metricSummary.scaleOk}/{metricSummary.scaleTotal}</strong>
-                  <span className="summary-sub">骨架比例参数</span>
-                </div>
-                <div className="metric-summary">
-                  <span className="summary-label">追踪质量</span>
-                  <strong>{metricSummary.quality}%</strong>
-                  <span className="summary-sub">visibility 综合评分</span>
-                </div>
-              </div>
-
-              <div className="metric-section-head">
-                <span>实时体态指标</span>
-                <span>样本 #{activeIdx} · 中心对齐 {metricSummary.alignOk}/{metricSummary.alignTotal}</span>
-              </div>
-
-              <div className="metric-grid">
-                {metricRows.map((metric) => (
-                  <div className={`metric-item ${metric.inRange ? 'ok' : 'warn'}`} key={metric.key}>
-                    <div className="metric-head">
-                      <div>
-                        <span className="metric-group">{metric.group}</span>
-                        <span className="metric-name">{metric.name}</span>
+                      <div className="ai-chat-thread" ref={chatThreadRef}>
+                        <div className="chat-message assistant">
+                          <div className="chat-bubble">
+                            当前融合样本已接入，足底压力流与三维姿态流保持同步监听。
+                          </div>
+                        </div>
+                        {submittedCommand && (
+                          <div className="chat-message user">
+                            <div className="chat-bubble">{submittedCommand}</div>
+                          </div>
+                        )}
+                        {(typed || aiState === 'streaming' || aiState === 'done') && (
+                          <div className="chat-message assistant">
+                            <div className="chat-bubble ai-reply">
+                              {typed}
+                              {aiState === 'streaming' && <span className="caret" />}
+                            </div>
+                          </div>
+                        )}
                       </div>
-                      <span className={`metric-status ${metric.inRange ? 'ok' : 'warn'}`}>{metric.status}</span>
-                    </div>
-                    <div className="metric-value-row">
-                      <span className="metric-val">{metric.formattedValue}</span>
-                      <span className="metric-range">正常 {metric.rangeText}</span>
-                    </div>
-                    <div
-                      className="metric-bar"
-                      style={{
-                        '--normal-left': `${metric.normalLeft}%`,
-                        '--normal-width': `${metric.normalWidth}%`,
-                        '--marker-left': `${metric.markerLeft}%`,
-                      }}
-                    >
-                      <div className="normal" />
-                      <div className="marker" />
-                    </div>
-                    <div className="metric-sub">
-                      <span>0</span>
-                      <span>{metric.status === '正常' ? '落在参考区间' : `当前${metric.status}`}</span>
-                      <span>{metric.formattedValue}</span>
+                      <div className="ai-composer">
+                        <textarea
+                          value={command}
+                          onChange={(event) => setCommand(event.target.value)}
+                          disabled={aiState === 'streaming'}
+                          placeholder="输入力姿融合 ETL 指令"
+                          rows={2}
+                        />
+                        <button
+                          className="btn btn-primary ai-send"
+                          type="button"
+                          onClick={startAi}
+                          disabled={aiState === 'streaming' || !command.trim()}
+                        >
+                          {aiState === 'streaming' ? '生成中' : '发送'}
+                        </button>
+                      </div>
                     </div>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-          </div>
 
-          <div className={`panel${activeTab === 'pressure' ? ' active' : ''}`}>
-            <div className="pressure-wrap">
-              <FootPressure title="左脚 (left)" values={JSON.parse(activeSample.left_pressures_json || '[]')} zones={LEFT_ZONES} status={activeSample.match_status} />
-              <FootPressure title="右脚 (right)" values={JSON.parse(activeSample.right_pressures_json || '[]')} zones={RIGHT_ZONES} status={activeSample.match_status} />
-            </div>
-          </div>
+              <div className={`panel${activeTab === 'metrics' ? ' active' : ''}`}>
+                <div className="metrics-dashboard">
+                  <div className="metric-summary-row">
+                    <div className={`metric-summary ${metricSummary.abnormal ? 'warn' : 'ok'}`}>
+                      <span className="summary-label">综合状态</span>
+                      <strong>{metricSummary.state}</strong>
+                      <span className="summary-sub">
+                        异常 {metricSummary.abnormal}/{metricRows.length}
+                      </span>
+                    </div>
+                    <div className="metric-summary">
+                      <span className="summary-label">姿态角度</span>
+                      <strong>
+                        {metricSummary.angleOk}/{metricSummary.angleTotal}
+                      </strong>
+                      <span className="summary-sub">头颈肩核心角度</span>
+                    </div>
+                    <div className="metric-summary">
+                      <span className="summary-label">身体尺度</span>
+                      <strong>
+                        {metricSummary.scaleOk}/{metricSummary.scaleTotal}
+                      </strong>
+                      <span className="summary-sub">骨架比例参数</span>
+                    </div>
+                    <div className="metric-summary">
+                      <span className="summary-label">追踪质量</span>
+                      <strong>{metricSummary.quality}%</strong>
+                      <span className="summary-sub">visibility 综合评分</span>
+                    </div>
+                  </div>
 
-          <div className={`panel${activeTab === 'raw' ? ' active' : ''}`}>
-            <JsonView sample={activeSample} />
-          </div>
+                  <div className="metric-section-head">
+                    <span>实时体态指标</span>
+                    <span>
+                      样本 #{activeIdx} · 中心对齐 {metricSummary.alignOk}/
+                      {metricSummary.alignTotal}
+                    </span>
+                  </div>
+
+                  <div className="metric-grid">
+                    {metricRows.map((metric) => (
+                      <div
+                        className={`metric-item ${metric.inRange ? 'ok' : 'warn'}`}
+                        key={metric.key}
+                      >
+                        <div className="metric-head">
+                          <div>
+                            <span className="metric-group">{metric.group}</span>
+                            <span className="metric-name">{metric.name}</span>
+                          </div>
+                          <span className={`metric-status ${metric.inRange ? 'ok' : 'warn'}`}>
+                            {metric.status}
+                          </span>
+                        </div>
+                        <div className="metric-value-row">
+                          <span className="metric-val">{metric.formattedValue}</span>
+                          <span className="metric-range">正常 {metric.rangeText}</span>
+                        </div>
+                        <div
+                          className="metric-bar"
+                          style={{
+                            '--normal-left': `${metric.normalLeft}%`,
+                            '--normal-width': `${metric.normalWidth}%`,
+                            '--marker-left': `${metric.markerLeft}%`,
+                          }}
+                        >
+                          <div className="normal" />
+                          <div className="marker" />
+                        </div>
+                        <div className="metric-sub">
+                          <span>0</span>
+                          <span>
+                            {metric.status === '正常' ? '落在参考区间' : `当前${metric.status}`}
+                          </span>
+                          <span>{metric.formattedValue}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className={`panel${activeTab === 'pressure' ? ' active' : ''}`}>
+                <div className="pressure-wrap">
+                  <FootPressure
+                    title="左脚 (left)"
+                    values={JSON.parse(activeSample.left_pressures_json || '[]')}
+                    zones={LEFT_ZONES}
+                    status={activeSample.match_status}
+                  />
+                  <FootPressure
+                    title="右脚 (right)"
+                    values={JSON.parse(activeSample.right_pressures_json || '[]')}
+                    zones={RIGHT_ZONES}
+                    status={activeSample.match_status}
+                  />
+                </div>
+              </div>
+
+              <div className={`panel${activeTab === 'raw' ? ' active' : ''}`}>
+                <JsonView sample={activeSample} />
+              </div>
             </>
           ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--muted)' }}>请抽取数据以开始调试</div>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                color: 'var(--muted)',
+              }}
+            >
+              请抽取数据以开始调试
+            </div>
           )}
         </div>
       </div>
@@ -634,7 +840,14 @@ function FootPressure({ title, values, zones, status }) {
               const b = Math.round(80 * (1 - intensity));
               return (
                 <div className="pressure-cell" key={zone}>
-                  <div className="pz" style={{ background: `rgba(${r},${g},${b},0.4)`, borderColor: `rgba(${r},${g},${b},0.6)`, color: `rgb(${r},${g + 100},${b + 100})` }}>
+                  <div
+                    className="pz"
+                    style={{
+                      background: `rgba(${r},${g},${b},0.4)`,
+                      borderColor: `rgba(${r},${g},${b},0.6)`,
+                      color: `rgb(${r},${g + 100},${b + 100})`,
+                    }}
+                  >
                     {value}
                   </div>
                   <div className="pz-label">{ZONE_LABELS[zone] || zone.slice(0, 6)}</div>

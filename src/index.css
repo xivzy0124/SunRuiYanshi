@@ -1,4 +1,15 @@
-@import "tailwindcss";
+@import 'tailwindcss';
+@plugin "@tailwindcss/forms";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --color-primary: #6c8cff;
+  --color-secondary: #a78bfa;
+  --color-success: #34d399;
+  --color-warning: #fb923c;
+  --color-danger: #f87171;
+  --color-info: #22d3ee;
+}
 
 * {
   margin: 0;

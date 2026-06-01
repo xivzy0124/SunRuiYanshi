@@ -4,9 +4,9 @@ import { pipelineRows, mergedNodes } from '../data/pipelineData';
 const STAGES = [
   { id: 'source', label: 'SOURCE', color: '#6c8cff' },
   { id: 'filter', label: 'FILTER', color: '#818cf8' },
-  { id: 'map',    label: 'MAP',    color: '#22d3ee' },
-  { id: 'calc',   label: 'CALC',   color: '#a78bfa' },
-  { id: 'join',   label: 'JOIN',   color: '#34d399' },
+  { id: 'map', label: 'MAP', color: '#22d3ee' },
+  { id: 'calc', label: 'CALC', color: '#a78bfa' },
+  { id: 'join', label: 'JOIN', color: '#34d399' },
   { id: 'output', label: 'OUTPUT', color: '#fb923c' },
 ];
 
@@ -17,11 +17,26 @@ const PIPE_DOT = 2.1;
 function FlowDots({ path, dur = 1.45, delay = 0 }) {
   return (
     <>
-      <circle r={PIPE_DOT} fill="#ffffff" opacity="0.98" style={{ filter: 'drop-shadow(0 0 4px #ffffff)' }}>
+      <circle
+        r={PIPE_DOT}
+        fill="#ffffff"
+        opacity="0.98"
+        style={{ filter: 'drop-shadow(0 0 4px #ffffff)' }}
+      >
         <animateMotion dur={`${dur}s`} repeatCount="indefinite" begin={`${delay}s`} path={path} />
       </circle>
-      <circle r={PIPE_DOT} fill="#ffffff" opacity="0.86" style={{ filter: 'drop-shadow(0 0 4px #ffffff)' }}>
-        <animateMotion dur={`${dur}s`} repeatCount="indefinite" begin={`${delay + dur / 2}s`} path={path} />
+      <circle
+        r={PIPE_DOT}
+        fill="#ffffff"
+        opacity="0.86"
+        style={{ filter: 'drop-shadow(0 0 4px #ffffff)' }}
+      >
+        <animateMotion
+          dur={`${dur}s`}
+          repeatCount="indefinite"
+          begin={`${delay + dur / 2}s`}
+          path={path}
+        />
       </circle>
     </>
   );
@@ -32,9 +47,27 @@ function Arrow({ color, className = 'pl-arrow' }) {
 
   return (
     <div className={className}>
-      <svg width="100%" height="20" viewBox="0 0 48 20" preserveAspectRatio="xMidYMid meet" fill="none">
-        <path d="M0 10 H48" stroke={color} strokeWidth={PIPE_OUTER} strokeLinecap="round" opacity="0.22" />
-        <path d="M0 10 H48" stroke={color} strokeWidth={PIPE_BODY} strokeLinecap="round" opacity="1" />
+      <svg
+        width="100%"
+        height="20"
+        viewBox="0 0 48 20"
+        preserveAspectRatio="xMidYMid meet"
+        fill="none"
+      >
+        <path
+          d="M0 10 H48"
+          stroke={color}
+          strokeWidth={PIPE_OUTER}
+          strokeLinecap="round"
+          opacity="0.22"
+        />
+        <path
+          d="M0 10 H48"
+          stroke={color}
+          strokeWidth={PIPE_BODY}
+          strokeLinecap="round"
+          opacity="1"
+        />
         <FlowDots path={pipe} dur={1.1} />
       </svg>
     </div>
@@ -49,13 +82,53 @@ function MergeConnector() {
   return (
     <div className="pl-merge-connector">
       <svg viewBox="0 0 120 178" preserveAspectRatio="none" fill="none">
-        <path d={topPipe} stroke="#6c8cff" strokeWidth={PIPE_OUTER} strokeLinecap="round" strokeLinejoin="round" opacity="0.22" />
-        <path d={bottomPipe} stroke="#22d3ee" strokeWidth={PIPE_OUTER} strokeLinecap="round" strokeLinejoin="round" opacity="0.22" />
-        <path d={mergedPipe} stroke="#34d399" strokeWidth={PIPE_OUTER} strokeLinecap="butt" opacity="0.24" />
+        <path
+          d={topPipe}
+          stroke="#6c8cff"
+          strokeWidth={PIPE_OUTER}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.22"
+        />
+        <path
+          d={bottomPipe}
+          stroke="#22d3ee"
+          strokeWidth={PIPE_OUTER}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.22"
+        />
+        <path
+          d={mergedPipe}
+          stroke="#34d399"
+          strokeWidth={PIPE_OUTER}
+          strokeLinecap="butt"
+          opacity="0.24"
+        />
 
-        <path d={topPipe} stroke="#6c8cff" strokeWidth={PIPE_BODY} strokeLinecap="round" strokeLinejoin="round" opacity="1" />
-        <path d={bottomPipe} stroke="#22d3ee" strokeWidth={PIPE_BODY} strokeLinecap="round" strokeLinejoin="round" opacity="1" />
-        <path d={mergedPipe} stroke="#34d399" strokeWidth={PIPE_BODY} strokeLinecap="butt" opacity="1" />
+        <path
+          d={topPipe}
+          stroke="#6c8cff"
+          strokeWidth={PIPE_BODY}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="1"
+        />
+        <path
+          d={bottomPipe}
+          stroke="#22d3ee"
+          strokeWidth={PIPE_BODY}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="1"
+        />
+        <path
+          d={mergedPipe}
+          stroke="#34d399"
+          strokeWidth={PIPE_BODY}
+          strokeLinecap="butt"
+          opacity="1"
+        />
 
         <FlowDots path={topPipe} delay={0} />
         <FlowDots path={bottomPipe} delay={0.2} />
@@ -73,13 +146,53 @@ function ForkArrow() {
   return (
     <div className="pl-fork">
       <svg viewBox="0 0 72 174" preserveAspectRatio="none" fill="none">
-        <path d={mergedPipe} stroke="var(--green)" strokeWidth={PIPE_OUTER} strokeLinecap="butt" opacity="0.24" />
-        <path d={topPipe} stroke="var(--orange)" strokeWidth={PIPE_OUTER} strokeLinecap="round" strokeLinejoin="round" opacity="0.2" />
-        <path d={bottomPipe} stroke="var(--orange)" strokeWidth={PIPE_OUTER} strokeLinecap="round" strokeLinejoin="round" opacity="0.2" />
+        <path
+          d={mergedPipe}
+          stroke="var(--green)"
+          strokeWidth={PIPE_OUTER}
+          strokeLinecap="butt"
+          opacity="0.24"
+        />
+        <path
+          d={topPipe}
+          stroke="var(--orange)"
+          strokeWidth={PIPE_OUTER}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.2"
+        />
+        <path
+          d={bottomPipe}
+          stroke="var(--orange)"
+          strokeWidth={PIPE_OUTER}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="0.2"
+        />
 
-        <path d={mergedPipe} stroke="var(--green)" strokeWidth={PIPE_BODY} strokeLinecap="butt" opacity="1" />
-        <path d={topPipe} stroke="var(--orange)" strokeWidth={PIPE_BODY} strokeLinecap="round" strokeLinejoin="round" opacity="1" />
-        <path d={bottomPipe} stroke="var(--orange)" strokeWidth={PIPE_BODY} strokeLinecap="round" strokeLinejoin="round" opacity="1" />
+        <path
+          d={mergedPipe}
+          stroke="var(--green)"
+          strokeWidth={PIPE_BODY}
+          strokeLinecap="butt"
+          opacity="1"
+        />
+        <path
+          d={topPipe}
+          stroke="var(--orange)"
+          strokeWidth={PIPE_BODY}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="1"
+        />
+        <path
+          d={bottomPipe}
+          stroke="var(--orange)"
+          strokeWidth={PIPE_BODY}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          opacity="1"
+        />
 
         <FlowDots path={mergedPipe} dur={1.1} />
         <FlowDots path={topPipe} delay={0.2} />
@@ -95,7 +208,9 @@ function StreamRow({ row, stream, activeId, onNodeClick }) {
     <div className="pl-stream-row">
       <div className="pl-stream-label">
         <span className="pl-stream-bar" style={{ background: row.color }} />
-        <span className="pl-stream-text" style={{ color: row.color }}>{row.label}</span>
+        <span className="pl-stream-text" style={{ color: row.color }}>
+          {row.label}
+        </span>
       </div>
       <div className="pl-stream-nodes">
         {row.nodes.map((node, i) => (
@@ -120,10 +235,10 @@ function StreamRow({ row, stream, activeId, onNodeClick }) {
 }
 
 export default function UnifiedPipeline({ activeId, onNodeClick }) {
-  const pressureRow = pipelineRows.find(r => r.id === 'pressure');
-  const postureRow = pipelineRows.find(r => r.id === 'posture');
-  const joinNode = mergedNodes.find(n => n.id === 'join');
-  const outputNodes = mergedNodes.filter(n => n.id !== 'join');
+  const pressureRow = pipelineRows.find((r) => r.id === 'pressure');
+  const postureRow = pipelineRows.find((r) => r.id === 'posture');
+  const joinNode = mergedNodes.find((n) => n.id === 'join');
+  const outputNodes = mergedNodes.filter((n) => n.id !== 'join');
 
   return (
     <div className="unified-pipeline">
@@ -133,7 +248,10 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
             <div className="pl-stage-spacer" />
             {STAGES.map((stage) => (
               <div key={stage.id} className={`pl-stage-item pl-stage-${stage.id}`}>
-                <span className="pl-stage-badge" style={{ color: stage.color, borderColor: `${stage.color}33` }}>
+                <span
+                  className="pl-stage-badge"
+                  style={{ color: stage.color, borderColor: `${stage.color}33` }}
+                >
                   {stage.label}
                 </span>
               </div>
@@ -142,8 +260,18 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
 
           <div className="pl-body">
             <div className="pl-streams">
-              <StreamRow row={pressureRow} stream="a" activeId={activeId} onNodeClick={onNodeClick} />
-              <StreamRow row={postureRow} stream="b" activeId={activeId} onNodeClick={onNodeClick} />
+              <StreamRow
+                row={pressureRow}
+                stream="a"
+                activeId={activeId}
+                onNodeClick={onNodeClick}
+              />
+              <StreamRow
+                row={postureRow}
+                stream="b"
+                activeId={activeId}
+                onNodeClick={onNodeClick}
+              />
             </div>
 
             <MergeConnector />
@@ -167,7 +295,7 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
                   <ForkArrow />
                 </div>
                 <div className="pl-output-col">
-                  {outputNodes.map(node => (
+                  {outputNodes.map((node) => (
                     <PipelineNode
                       key={node.id}
                       id={node.id}

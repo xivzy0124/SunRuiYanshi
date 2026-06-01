@@ -1,0 +1,668 @@
+/* 工作流编辑器样式 */
+.workflow-editor {
+  --wf-bg: #0a0c12;
+  --wf-card: #12151e;
+  --wf-border: #1e2234;
+  --wf-text: #e2e4ea;
+  --wf-muted: #6b7084;
+  --wf-accent: #6c8cff;
+  --wf-green: #34d399;
+  --wf-orange: #fb923c;
+  --wf-red: #f87171;
+  --wf-purple: #a78bfa;
+  --wf-cyan: #22d3ee;
+  --wf-pink: #f472b6;
+  --wf-grid-color: rgba(30, 34, 52, 0.6);
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--wf-bg);
+  color: var(--wf-text);
+  font-family: -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  position: relative;
+}
+
+/* 顶部工具栏 */
+.workflow-toolbar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 52px;
+  background: var(--wf-card);
+  border-bottom: 1px solid var(--wf-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  z-index: 100;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.toolbar-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--wf-text);
+}
+
+.toolbar-title span {
+  color: var(--wf-accent);
+}
+
+.toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.toolbar-btn {
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--wf-border);
+  background: var(--wf-bg);
+  color: var(--wf-text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.toolbar-btn:hover {
+  border-color: var(--wf-accent);
+  background: rgba(108, 140, 255, 0.1);
+}
+
+.toolbar-btn.primary {
+  background: var(--wf-accent);
+  border-color: var(--wf-accent);
+  color: #fff;
+}
+
+.toolbar-btn.primary:hover {
+  filter: brightness(1.15);
+}
+
+.toolbar-btn .icon {
+  font-size: 14px;
+}
+
+/* 画布容器 */
+.workflow-canvas-container {
+  position: absolute;
+  top: 52px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: hidden;
+  cursor: default;
+}
+
+.workflow-canvas-container.panning {
+  cursor: grabbing;
+}
+
+/* 网格背景 */
+.workflow-canvas {
+  position: absolute;
+  width: 4000px;
+  height: 4000px;
+  background-image: radial-gradient(circle, var(--wf-grid-color) 1px, transparent 1px);
+  background-size: 20px 20px;
+  transform-origin: 0 0;
+}
+
+/* 节点样式 */
+.workflow-node {
+  position: absolute;
+  min-width: 180px;
+  background: var(--wf-card);
+  border: 1px solid var(--wf-border);
+  border-radius: 10px;
+  cursor: grab;
+  user-select: none;
+  z-index: 10;
+  transition:
+    box-shadow 0.2s,
+    border-color 0.2s;
+}
+
+.workflow-node:active {
+  cursor: grabbing;
+}
+
+.workflow-node:hover {
+  border-color: var(--wf-accent);
+  box-shadow: 0 4px 20px rgba(108, 140, 255, 0.15);
+  z-index: 20;
+}
+
+.workflow-node.selected {
+  border-color: var(--wf-accent);
+  box-shadow:
+    0 0 0 2px rgba(108, 140, 255, 0.3),
+    0 4px 20px rgba(108, 140, 255, 0.2);
+  z-index: 30;
+}
+
+.workflow-node.dragging {
+  opacity: 0.9;
+  z-index: 1000;
+}
+
+.node-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--wf-border);
+  border-radius: 10px 10px 0 0;
+}
+
+.node-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.node-label {
+  font-size: 13px;
+  font-weight: 700;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.node-delete {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--wf-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  opacity: 0;
+  transition: all 0.2s;
+}
+
+.workflow-node:hover .node-delete {
+  opacity: 1;
+}
+
+.node-delete:hover {
+  background: var(--wf-red);
+  color: #fff;
+}
+
+.node-body {
+  padding: 10px 14px;
+}
+
+.node-desc {
+  font-size: 11px;
+  color: var(--wf-muted);
+  line-height: 1.4;
+}
+
+/* 端口样式 */
+.node-ports {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 14px;
+  border-top: 1px solid var(--wf-border);
+}
+
+.port-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.port-group.inputs {
+  align-items: flex-start;
+}
+
+.port-group.outputs {
+  align-items: flex-end;
+}
+
+.port {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--wf-muted);
+  cursor: crosshair;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.port:hover {
+  background: rgba(108, 140, 255, 0.1);
+}
+
+.port.inputs {
+  flex-direction: row;
+  margin-left: -14px;
+}
+
+.port.outputs {
+  flex-direction: row-reverse;
+  margin-right: -14px;
+}
+
+.port-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--wf-muted);
+  background: var(--wf-bg);
+  transition: all 0.15s;
+  position: relative;
+}
+
+.port-dot::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  right: -6px;
+  bottom: -6px;
+  border-radius: 50%;
+}
+
+.port:hover .port-dot {
+  border-color: var(--wf-accent);
+  background: var(--wf-accent);
+  box-shadow: 0 0 10px rgba(108, 140, 255, 0.6);
+  transform: scale(1.2);
+}
+
+.port.connected .port-dot {
+  background: var(--wf-accent);
+  border-color: var(--wf-accent);
+}
+
+/* 连线样式 */
+.workflow-edges {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.workflow-edge {
+  fill: none;
+  stroke: var(--wf-muted);
+  stroke-width: 2;
+  pointer-events: none;
+  transition:
+    stroke 0.2s,
+    stroke-width 0.2s;
+}
+
+.workflow-edge.selected {
+  stroke: var(--wf-accent);
+  stroke-width: 3;
+}
+
+.workflow-edge-temp {
+  fill: none;
+  stroke: var(--wf-accent);
+  stroke-width: 2;
+  stroke-dasharray: 8 4;
+  pointer-events: none;
+  animation: dash 0.5s linear infinite;
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
+/* 右键菜单 */
+.context-menu {
+  position: absolute;
+  background: var(--wf-card);
+  border: 1px solid var(--wf-border);
+  border-radius: 10px;
+  padding: 6px;
+  min-width: 180px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  animation: menuFadeIn 0.15s ease;
+}
+
+@keyframes menuFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.context-menu-title {
+  padding: 8px 10px 6px;
+  font-size: 11px;
+  color: var(--wf-muted);
+  font-weight: 600;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  color: var(--wf-text);
+  font-size: 13px;
+}
+
+.context-menu-item:hover {
+  background: rgba(108, 140, 255, 0.12);
+}
+
+.context-menu-item .icon {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+
+.context-menu-divider {
+  height: 1px;
+  background: var(--wf-border);
+  margin: 4px 10px;
+}
+
+/* 小地图 */
+.workflow-minimap {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  width: 180px;
+  height: 120px;
+  background: var(--wf-card);
+  border: 1px solid var(--wf-border);
+  border-radius: 8px;
+  overflow: hidden;
+  z-index: 50;
+}
+
+.minimap-viewport {
+  position: absolute;
+  border: 1px solid var(--wf-accent);
+  background: rgba(108, 140, 255, 0.1);
+  pointer-events: none;
+}
+
+.minimap-node {
+  position: absolute;
+  width: 8px;
+  height: 4px;
+  background: var(--wf-accent);
+  border-radius: 2px;
+  opacity: 0.6;
+}
+
+.minimap-node.selected {
+  opacity: 1;
+  box-shadow: 0 0 4px currentColor;
+}
+
+/* 缩放控制 */
+.zoom-controls {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 50;
+}
+
+.zoom-btn {
+  width: 32px;
+  height: 32px;
+  border: 1px solid var(--wf-border);
+  background: var(--wf-card);
+  color: var(--wf-text);
+  border-radius: 6px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.zoom-btn:hover {
+  border-color: var(--wf-accent);
+  background: rgba(108, 140, 255, 0.1);
+}
+
+.zoom-level {
+  text-align: center;
+  font-size: 11px;
+  color: var(--wf-muted);
+  padding: 4px 0;
+}
+
+/* 提示文字 */
+.workflow-hint {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  color: var(--wf-muted);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.workflow-hint .hint-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+
+.workflow-hint .hint-text {
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.workflow-hint .hint-shortcut {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--wf-border);
+  border-radius: 4px;
+  font-size: 12px;
+  margin: 0 2px;
+}
+
+/* 工具栏信息 */
+.toolbar-info {
+  font-size: 12px;
+  color: var(--wf-muted);
+  padding: 0 8px;
+}
+
+/* 节点配置按钮 */
+.node-config-btn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  background: transparent;
+  color: var(--wf-muted);
+  cursor: pointer;
+  border-radius: 4px;
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  opacity: 0;
+  transition: all 0.2s;
+}
+
+.workflow-node:hover .node-config-btn {
+  opacity: 1;
+}
+
+.node-config-btn:hover {
+  background: var(--wf-accent);
+  color: #fff;
+}
+
+/* 节点配置摘要 */
+.node-config-summary {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.config-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  background: rgba(108, 140, 255, 0.1);
+  border: 1px solid rgba(108, 140, 255, 0.2);
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.config-label {
+  color: var(--wf-muted);
+}
+
+.config-value {
+  color: var(--wf-accent);
+  font-weight: 600;
+}
+
+/* 节点配置面板 */
+.node-config-panel {
+  margin-top: 8px;
+  padding: 10px;
+  background: var(--wf-bg);
+  border: 1px solid var(--wf-border);
+  border-radius: 6px;
+}
+
+.config-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--wf-muted);
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.config-field {
+  margin-bottom: 8px;
+}
+
+.config-field:last-child {
+  margin-bottom: 0;
+}
+
+.config-field label {
+  display: block;
+  font-size: 11px;
+  color: var(--wf-text);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.config-field input,
+.config-field select {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--wf-card);
+  border: 1px solid var(--wf-border);
+  border-radius: 4px;
+  color: var(--wf-text);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.config-field input:focus,
+.config-field select:focus {
+  border-color: var(--wf-accent);
+}
+
+.config-field input::placeholder {
+  color: var(--wf-muted);
+  opacity: 0.6;
+}
+
+.config-field select {
+  cursor: pointer;
+}
+
+.config-field select option {
+  background: var(--wf-card);
+  color: var(--wf-text);
+}
+
+/* 节点最小宽度调整 */
+.workflow-node {
+  min-width: 180px;
+  transition: min-width 0.2s;
+}
+
+/* 端口样式增强 */
+.port {
+  padding: 2px 0;
+  user-select: none;
+}
+
+.port-dot {
+  transition: all 0.15s ease;
+}
+
+/* 连线动画 */
+@keyframes flowAnimation {
+  from {
+    stroke-dashoffset: 20;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.workflow-edge.animated {
+  stroke-dasharray: 10 5;
+  animation: flowAnimation 1s linear infinite;
+}

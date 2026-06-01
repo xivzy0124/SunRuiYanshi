@@ -9,7 +9,9 @@ export default function PipelineRow({ label, color, nodes, stream, activeId, onN
       {label && (
         <div className="pipeline-label-inline">
           <span className="pipeline-label-bar" style={{ background: color }} />
-          <span className="pipeline-label-text" style={{ color }}>{label}</span>
+          <span className="pipeline-label-text" style={{ color }}>
+            {label}
+          </span>
         </div>
       )}
       <div className="pipeline-grid">
