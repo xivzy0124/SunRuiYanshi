@@ -979,7 +979,7 @@ export default function LineageGraph() {
                 key={stage.id}
                 style={{
                   opacity: 0,
-                  animation: `fadeSlideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) ${stageDelay}s forwards`,
+                  animation: `nodeFadeIn 0.4s ease ${stageDelay}s both`,
                 }}
               >
                 <rect
@@ -1155,7 +1155,7 @@ export default function LineageGraph() {
                 key={i}
                 style={{
                   opacity: 0,
-                  animation: `fadeSlideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) ${edgeDelay}s forwards`,
+                  animation: `nodeFadeIn 0.35s ease ${edgeDelay}s both`,
                 }}
               >
                 <path
@@ -1219,7 +1219,7 @@ export default function LineageGraph() {
                 style={{
                   cursor: 'grab',
                   opacity: 0,
-                  animation: `fadeSlideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) ${staggerDelay}s forwards`,
+                  animation: `nodeFadeIn 0.4s ease ${staggerDelay}s both`,
                 }}
               >
                 {/* Hit area */}
