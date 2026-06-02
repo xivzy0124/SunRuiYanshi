@@ -973,13 +973,13 @@ export default function LineageGraph() {
           {STAGES.map((stage, i) => {
             const nextX = i < STAGES.length - 1 ? STAGES[i + 1].x : SVG_W;
             const bandW = nextX - stage.x;
-            const stageDelay = 0.1 + i * 0.12;
+            const stageDelay = 0.5 + i * 0.4;
             return (
               <g
                 key={stage.id}
                 style={{
                   opacity: 0,
-                  animation: `nodeFadeIn 0.4s ease ${stageDelay}s both`,
+                  animation: `nodeFadeIn 0.6s ease ${stageDelay}s both`,
                 }}
               >
                 <rect
@@ -1148,14 +1148,14 @@ export default function LineageGraph() {
               edgeWidth = 2.5;
             }
 
-            const edgeDelay = 0.8 + i * 0.06;
+            const edgeDelay = 3.0 + i * 0.15;
 
             return (
               <g
                 key={i}
                 style={{
                   opacity: 0,
-                  animation: `nodeFadeIn 0.35s ease ${edgeDelay}s both`,
+                  animation: `nodeFadeIn 0.5s ease ${edgeDelay}s both`,
                 }}
               >
                 <path
@@ -1207,7 +1207,7 @@ export default function LineageGraph() {
             const isSelected = selected === id;
             const isInChain = chain?.chain.has(id);
             const dimmed = chain && !isInChain && !isSelected;
-            const staggerDelay = 0.3 + nodeIdx * 0.04; // 每个节点延迟 40ms
+            const staggerDelay = 1.5 + nodeIdx * 0.12;
 
             return (
               <g
@@ -1219,7 +1219,7 @@ export default function LineageGraph() {
                 style={{
                   cursor: 'grab',
                   opacity: 0,
-                  animation: `nodeFadeIn 0.4s ease ${staggerDelay}s both`,
+                  animation: `nodeFadeIn 0.6s ease ${staggerDelay}s both`,
                 }}
               >
                 {/* Hit area */}

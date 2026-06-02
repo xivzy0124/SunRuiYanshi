@@ -223,7 +223,7 @@ function StreamRow({ row, stream, activeId, onNodeClick, baseDelay = 0 }) {
           <div
             key={node.id}
             className="pl-node-group reveal-node"
-            style={{ animationDelay: `${baseDelay + i * 0.15}s`, animationFillMode: 'both' }}
+            style={{ animationDelay: `${baseDelay + i * 0.4}s`, animationFillMode: 'both' }}
           >
             {i > 0 && <Arrow color={row.color} />}
             <PipelineNode
@@ -261,7 +261,7 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
               <div
                 key={stage.id}
                 className={`pl-stage-item pl-stage-${stage.id} reveal-node`}
-                style={{ animationDelay: `${i * 0.1}s`, animationFillMode: 'both' }}
+                style={{ animationDelay: `${i * 0.3}s`, animationFillMode: 'both' }}
               >
                 <span
                   className="pl-stage-badge"
@@ -280,18 +280,18 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
                 stream="a"
                 activeId={activeId}
                 onNodeClick={onNodeClick}
-                baseDelay={0}
+                baseDelay={0.8}
               />
               <StreamRow
                 row={postureRow}
                 stream="b"
                 activeId={activeId}
                 onNodeClick={onNodeClick}
-                baseDelay={0.6}
+                baseDelay={2.0}
               />
             </div>
 
-            <div className="reveal-node" style={{ animationDelay: '1.2s', animationFillMode: 'both' }}>
+            <div className="reveal-node" style={{ animationDelay: '3.0s', animationFillMode: 'both' }}>
               <MergeConnector />
             </div>
 
@@ -299,7 +299,7 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
               <div className="pl-merge-output-group">
                 <div
                   className="pl-join-col reveal-node"
-                  style={{ animationDelay: '1.5s', animationFillMode: 'both' }}
+                  style={{ animationDelay: '3.8s', animationFillMode: 'both' }}
                 >
                   <PipelineNode
                     id={joinNode.id}
@@ -315,7 +315,7 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
                 </div>
                 <div
                   className="pl-fork-col reveal-node"
-                  style={{ animationDelay: '1.8s', animationFillMode: 'both' }}
+                  style={{ animationDelay: '4.5s', animationFillMode: 'both' }}
                 >
                   <ForkArrow />
                 </div>
@@ -324,7 +324,7 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
                     <div
                       key={node.id}
                       className="reveal-node"
-                      style={{ animationDelay: `${2.0 + i * 0.2}s`, animationFillMode: 'both' }}
+                      style={{ animationDelay: `${5.0 + i * 0.5}s`, animationFillMode: 'both' }}
                     >
                       <PipelineNode
                         id={node.id}
