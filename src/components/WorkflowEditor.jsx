@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
 import '../styles/workflowEditor.css';
 import WorkflowNode from './WorkflowNode';
 import ContextMenu from './ContextMenu';
@@ -17,14 +17,14 @@ const DEFAULT_NODES = [
   },
 ];
 
-export default function WorkflowEditor({
+const WorkflowEditor = forwardRef(function WorkflowEditor({
   onBack,
   onExecute,
   onShowTemplate,
   onShowHistory,
   workflowConfig: _workflowConfig,
   onConfigChange: _onConfigChange,
-}) {
+}, ref) {
   const [nodes, setNodes] = useState(DEFAULT_NODES);
   const [edges, setEdges] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
@@ -55,12 +55,126 @@ export default function WorkflowEditor({
   }, [document.documentElement.dataset.theme]);
   const containerRef = useRef(null);
   const edgeDragRef = useRef(null);
+  const [injectingNodes, setInjectingNodes] = useState(new Set());
 
   // 生成唯一 ID
   const generateId = useCallback(
     () => `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
     []
   );
+
+  // AI 注入工作流
+  const injectWorkflow = useCallback(
+    (workflow) => {
+      if (!workflow || !workflow.nodes || workflow.nodes.length === 0) return;
+
+      const isAppend = workflow.nodes.length <= 2; // 单/双节点视为追加
+      const idMap = {}; // AI 索引 → 编辑器 ID
+
+      // 为每个节点生成编辑器 ID
+      workflow.nodes.forEach((_, i) => {
+        idMap[i] = generateId();
+      });
+
+      // 计算注入节点的位置（如果是追加模式，放在现有节点右侧）
+      let offsetX = 0;
+      let offsetY = 0;
+      if (isAppend) {
+        setNodes((prev) => {
+          if (prev.length > 0) {
+            const maxX = Math.max(...prev.map((n) => n.x + 180));
+            const avgY = prev.reduce((sum, n) => sum + n.y, 0) / prev.length;
+            offsetX = maxX + 80;
+            offsetY = avgY - 60;
+          }
+          return prev;
+        });
+      }
+
+      // 构建新节点
+      const newNodes = workflow.nodes.map((aiNode, i) => ({
+        id: idMap[i],
+        type: aiNode.type,
+        label: aiNode.label,
+        x: isAppend ? offsetX + (aiNode.x || 0) : aiNode.x,
+        y: isAppend ? offsetY + (aiNode.y || 0) : aiNode.y,
+        inputs: aiNode.type === 'start' ? [] : [{ id: 'in-1', label: '输入' }],
+        outputs: aiNode.type === 'end' ? [] : [{ id: 'out-1', label: '输出' }],
+        config: aiNode.config || {},
+      }));
+
+      // 构建新连线
+      const newEdges = (workflow.edges || []).map((aiEdge) => ({
+        id: `edge-${Date.now()}-${Math.random().toString(36).substr(2, 6)}`,
+        source: idMap[aiEdge.source],
+        target: idMap[aiEdge.target],
+        sourceHandle: 'out-1',
+        targetHandle: 'in-1',
+      }));
+
+      // 追加模式：添加到现有节点后面
+      if (isAppend) {
+        setNodes((prev) => [...prev, ...newNodes]);
+        setEdges((prev) => [...prev, ...newEdges]);
+      } else {
+        // 替换模式：清空后注入
+        setNodes([
+          {
+            id: 'node-start',
+            type: 'start',
+            label: '开始',
+            x: 200,
+            y: 300,
+            inputs: [],
+            outputs: [{ id: 'out-1', label: '输出' }],
+            config: {},
+          },
+          ...newNodes,
+        ]);
+        setEdges(newEdges);
+      }
+
+      // 逐个添加入场动画
+      const allNewIds = newNodes.map((n) => n.id);
+      setInjectingNodes(new Set(allNewIds));
+
+      // 逐个触发动画
+      allNewIds.forEach((nodeId, i) => {
+        setTimeout(() => {
+          setInjectingNodes((prev) => {
+            const next = new Set(prev);
+            next.delete(nodeId);
+            return next;
+          });
+        }, 300 + i * 200);
+      });
+
+      // 全部完成后清除动画状态
+      setTimeout(() => {
+        setInjectingNodes(new Set());
+      }, 300 + allNewIds.length * 200 + 2000);
+
+      // 自动平移到新节点区域
+      if (newNodes.length > 0) {
+        const avgX = newNodes.reduce((sum, n) => sum + n.x, 0) / newNodes.length;
+        const avgY = newNodes.reduce((sum, n) => sum + n.y, 0) / newNodes.length;
+        const container = containerRef.current;
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          setCanvasOffset({
+            x: rect.width / 2 - avgX * zoom,
+            y: rect.height / 2 - avgY * zoom,
+          });
+        }
+      }
+    },
+    [generateId, zoom]
+  );
+
+  // 暴露方法给父组件
+  useImperativeHandle(ref, () => ({
+    injectWorkflow,
+  }), [injectWorkflow]);
 
   // 处理画布点击（取消选择）
   const handleCanvasClick = useCallback((e) => {
@@ -602,6 +716,7 @@ export default function WorkflowEditor({
               node={node}
               nodeType={NODE_TYPES[node.type]}
               selected={selectedNode === node.id}
+              injecting={injectingNodes.has(node.id)}
               onDragStart={(e) => handleNodeMouseDown(node.id, e)}
               onPortMouseDown={handlePortMouseDown}
               onDelete={() => deleteNode(node.id)}
@@ -661,4 +776,6 @@ export default function WorkflowEditor({
       </div>
     </div>
   );
-}
+});
+
+export default WorkflowEditor;

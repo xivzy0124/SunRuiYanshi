@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useCallback } from 'react';
 import Navigation from './components/Navigation';
 import AIAssistant from './components/AIAssistant';
 import WorkflowTemplate from './components/WorkflowTemplate';
@@ -17,6 +17,7 @@ function App() {
   const { theme, toggleTheme } = useTheme();
   const [showTemplate, setShowTemplate] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const workflowEditorRef = useRef(null);
 
   // 页面切换处理
   const handlePageChange = (page) => {
@@ -30,15 +31,6 @@ function App() {
     } else if (page === 'pipeline') {
       store.updateStepStatus('execute', 'running');
     }
-  };
-
-  // AI 生成工作流
-  const handleGenerateWorkflow = () => {
-    store.generateWorkflow();
-    // 自动切换到工作流页面
-    setTimeout(() => {
-      store.setCurrentPage('workflow');
-    }, 2500);
   };
 
   // 应用模板
@@ -59,6 +51,21 @@ function App() {
     setShowHistory(false);
   };
 
+  // AI 生成工作流并注入编辑器
+  const handleWorkflowGenerated = useCallback(
+    (workflow) => {
+      // 切换到工作流编辑器页面
+      store.setCurrentPage('workflow');
+      store.updateStepStatus('workflow', 'running');
+
+      // 延迟注入，等待页面切换和编辑器挂载完成
+      setTimeout(() => {
+        workflowEditorRef.current?.injectWorkflow(workflow);
+      }, 300);
+    },
+    [store]
+  );
+
   // 渲染当前页面
   const renderCurrentPage = () => {
     switch (store.currentPage) {
@@ -67,12 +74,12 @@ function App() {
           <MockWorkbench
             onPipelineReady={() => handlePageChange('pipeline')}
             onOpenWorkflow={() => handlePageChange('workflow')}
-            onGenerateWorkflow={handleGenerateWorkflow}
           />
         );
       case 'workflow':
         return (
           <WorkflowEditor
+            ref={workflowEditorRef}
             onBack={() => handlePageChange('monitor')}
             onExecute={handleExecuteWorkflow}
             onShowTemplate={() => setShowTemplate(true)}
@@ -103,12 +110,7 @@ function App() {
       <div className="page-content">{renderCurrentPage()}</div>
 
       {/* AI 助手 */}
-      <AIAssistant
-        onGenerateWorkflow={handleGenerateWorkflow}
-        onApplyOptimization={(optimization) => {
-          console.log('Apply optimization:', optimization);
-        }}
-      />
+      <AIAssistant onWorkflowGenerated={handleWorkflowGenerated} />
 
       {/* 工作流模板库 */}
       {showTemplate && (

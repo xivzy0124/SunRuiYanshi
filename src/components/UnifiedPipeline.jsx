@@ -209,7 +209,7 @@ function ForkArrow() {
   );
 }
 
-function StreamRow({ row, stream, activeId, onNodeClick }) {
+function StreamRow({ row, stream, activeId, onNodeClick, baseDelay = 0 }) {
   return (
     <div className="pl-stream-row">
       <div className="pl-stream-label">
@@ -220,7 +220,11 @@ function StreamRow({ row, stream, activeId, onNodeClick }) {
       </div>
       <div className="pl-stream-nodes">
         {row.nodes.map((node, i) => (
-          <div key={node.id} className="pl-node-group">
+          <div
+            key={node.id}
+            className="pl-node-group reveal-node"
+            style={{ animationDelay: `${baseDelay + i * 0.15}s`, animationFillMode: 'backwards' }}
+          >
             {i > 0 && <Arrow color={row.color} />}
             <PipelineNode
               id={node.id}
@@ -253,8 +257,12 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
         <div className="pl-canvas">
           <div className="pl-stage-labels">
             <div className="pl-stage-spacer" />
-            {stages.map((stage) => (
-              <div key={stage.id} className={`pl-stage-item pl-stage-${stage.id}`}>
+            {stages.map((stage, i) => (
+              <div
+                key={stage.id}
+                className={`pl-stage-item pl-stage-${stage.id} reveal-node`}
+                style={{ animationDelay: `${i * 0.1}s`, animationFillMode: 'backwards' }}
+              >
                 <span
                   className="pl-stage-badge"
                   style={{ color: stage.color, borderColor: `${stage.color}33` }}
@@ -272,20 +280,27 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
                 stream="a"
                 activeId={activeId}
                 onNodeClick={onNodeClick}
+                baseDelay={0}
               />
               <StreamRow
                 row={postureRow}
                 stream="b"
                 activeId={activeId}
                 onNodeClick={onNodeClick}
+                baseDelay={0.6}
               />
             </div>
 
-            <MergeConnector />
+            <div className="reveal-node" style={{ animationDelay: '1.2s', animationFillMode: 'backwards' }}>
+              <MergeConnector />
+            </div>
 
             <div className="pl-right-section">
               <div className="pl-merge-output-group">
-                <div className="pl-join-col">
+                <div
+                  className="pl-join-col reveal-node"
+                  style={{ animationDelay: '1.5s', animationFillMode: 'backwards' }}
+                >
                   <PipelineNode
                     id={joinNode.id}
                     label={joinNode.label}
@@ -298,22 +313,30 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
                     outputCount={joinNode.outputCount}
                   />
                 </div>
-                <div className="pl-fork-col">
+                <div
+                  className="pl-fork-col reveal-node"
+                  style={{ animationDelay: '1.8s', animationFillMode: 'backwards' }}
+                >
                   <ForkArrow />
                 </div>
                 <div className="pl-output-col">
-                  {outputNodes.map((node) => (
-                    <PipelineNode
+                  {outputNodes.map((node, i) => (
+                    <div
                       key={node.id}
-                      id={node.id}
-                      label={node.label}
-                      sub={node.sub}
-                      stream="out"
-                      active={activeId === node.id}
-                      onClick={onNodeClick}
-                      inputCount={node.inputCount}
-                      outputCount={node.outputCount}
-                    />
+                      className="reveal-node"
+                      style={{ animationDelay: `${2.0 + i * 0.2}s`, animationFillMode: 'backwards' }}
+                    >
+                      <PipelineNode
+                        id={node.id}
+                        label={node.label}
+                        sub={node.sub}
+                        stream="out"
+                        active={activeId === node.id}
+                        onClick={onNodeClick}
+                        inputCount={node.inputCount}
+                        outputCount={node.outputCount}
+                      />
+                    </div>
                   ))}
                 </div>
               </div>

@@ -110,6 +110,7 @@ export default function WorkflowNode({
   node,
   nodeType,
   selected,
+  injecting,
   onDragStart,
   onPortMouseDown,
   onDelete,
@@ -125,7 +126,7 @@ export default function WorkflowNode({
 
   return (
     <div
-      className={`workflow-node ${selected ? 'selected' : ''}`}
+      className={`workflow-node ${selected ? 'selected' : ''} ${injecting ? 'injecting glowing' : ''}`}
       data-node-id={node.id}
       style={{
         left: `${node.x}px`,

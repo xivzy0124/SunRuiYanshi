@@ -973,8 +973,15 @@ export default function LineageGraph() {
           {STAGES.map((stage, i) => {
             const nextX = i < STAGES.length - 1 ? STAGES[i + 1].x : SVG_W;
             const bandW = nextX - stage.x;
+            const stageDelay = 0.1 + i * 0.12;
             return (
-              <g key={stage.id}>
+              <g
+                key={stage.id}
+                style={{
+                  opacity: 0,
+                  animation: `fadeSlideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) ${stageDelay}s forwards`,
+                }}
+              >
                 <rect
                   x={stage.x - 10}
                   y={38}
@@ -1141,8 +1148,16 @@ export default function LineageGraph() {
               edgeWidth = 2.5;
             }
 
+            const edgeDelay = 0.8 + i * 0.06;
+
             return (
-              <g key={i}>
+              <g
+                key={i}
+                style={{
+                  opacity: 0,
+                  animation: `fadeSlideUp 0.35s cubic-bezier(0.22, 1, 0.36, 1) ${edgeDelay}s forwards`,
+                }}
+              >
                 <path
                   d={path}
                   fill="none"
@@ -1188,10 +1203,11 @@ export default function LineageGraph() {
           })}
 
           {/* Field nodes */}
-          {Object.entries(nodes).map(([id, node]) => {
+          {Object.entries(nodes).map(([id, node], nodeIdx) => {
             const isSelected = selected === id;
             const isInChain = chain?.chain.has(id);
             const dimmed = chain && !isInChain && !isSelected;
+            const staggerDelay = 0.3 + nodeIdx * 0.04; // 每个节点延迟 40ms
 
             return (
               <g
@@ -1200,7 +1216,11 @@ export default function LineageGraph() {
                 onPointerDown={(e) => handlePointerDown(id, e)}
                 onPointerMove={handlePointerMove}
                 onPointerUp={() => handlePointerUp(id)}
-                style={{ cursor: 'grab' }}
+                style={{
+                  cursor: 'grab',
+                  opacity: 0,
+                  animation: `fadeSlideUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) ${staggerDelay}s forwards`,
+                }}
               >
                 {/* Hit area */}
                 <rect

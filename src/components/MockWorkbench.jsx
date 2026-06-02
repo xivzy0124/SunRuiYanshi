@@ -381,7 +381,6 @@ function JsonView({ sample }) {
 export default function MockWorkbench({
   onPipelineReady,
   onOpenWorkflow,
-  onGenerateWorkflow: _onGenerateWorkflow,
 }) {
   const [samples, setSamples] = useState([]);
   const [activeIdx, setActiveIdx] = useState(0);
