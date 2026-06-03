@@ -654,40 +654,12 @@
   animation: flowAnimation 1s linear infinite;
 }
 
-/* ─── AI 注入节点入场动画 ─── */
+/* ─── AI 注入节点入场 — 简单淡入，无闪烁 ─── */
 @keyframes nodeAppear {
-  0% {
-    opacity: 0;
-    transform: scale(0.6);
-  }
-  60% {
-    opacity: 1;
-    transform: scale(1.05);
-  }
-  100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-@keyframes nodeGlow {
-  0%,
-  100% {
-    box-shadow:
-      0 0 0 2px rgba(108, 140, 255, 0.3),
-      0 4px 20px rgba(108, 140, 255, 0.2);
-  }
-  50% {
-    box-shadow:
-      0 0 0 4px rgba(108, 140, 255, 0.5),
-      0 4px 30px rgba(108, 140, 255, 0.4);
-  }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .workflow-node.injecting {
-  animation: nodeAppear 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-}
-
-.workflow-node.glowing {
-  animation: nodeGlow 1.5s ease-in-out 3;
+  animation: nodeAppear 0.6s ease forwards;
 }

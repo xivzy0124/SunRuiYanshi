@@ -126,7 +126,7 @@ export default function WorkflowNode({
 
   return (
     <div
-      className={`workflow-node ${selected ? 'selected' : ''} ${injecting ? 'injecting glowing' : ''}`}
+      className={`workflow-node ${selected ? 'selected' : ''} ${injecting ? 'injecting' : ''}`}
       data-node-id={node.id}
       style={{
         left: `${node.x}px`,
