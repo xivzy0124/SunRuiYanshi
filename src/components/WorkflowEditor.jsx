@@ -3,6 +3,22 @@ import '../styles/workflowEditor.css';
 import WorkflowNode from './WorkflowNode';
 import ContextMenu from './ContextMenu';
 
+// 画布边界常量
+const CANVAS_BOUNDS = {
+  minX: -2000,
+  maxX: 2000,
+  minY: -2000,
+  maxY: 2000,
+};
+
+// 节点边界（相对于画布边界留出一些边距）
+const NODE_BOUNDS = {
+  minX: -1800,
+  maxX: 1800,
+  minY: -1800,
+  maxY: 1800,
+};
+
 // 默认节点数据
 const DEFAULT_NODES = [
   {
@@ -51,6 +67,16 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
       output: { label: '输出', color: resolve('--purple'), icon: '📤', desc: '数据输出节点' },
       transform: { label: '转换', color: resolve('--pink'), icon: '🔄', desc: '数据转换节点' },
       merge: { label: '合并', color: resolve('--purple'), icon: '⊕', desc: '数据合并节点' },
+      code: { label: '代码块', color: resolve('--accent3'), icon: '⟨/⟩', desc: '自定义代码执行节点' },
+      sql: { label: 'SQL', color: resolve('--accent2'), icon: '🗃', desc: 'SQL查询执行节点' },
+      filter: { label: '过滤', color: resolve('--cyan'), icon: '🔍', desc: '数据过滤筛选节点' },
+      aggregate: { label: '聚合', color: resolve('--orange'), icon: '📊', desc: '数据聚合统计节点' },
+      sort: { label: '排序', color: resolve('--pink'), icon: '↕', desc: '数据排序节点' },
+      sample: { label: '采样', color: resolve('--green'), icon: '🎲', desc: '数据采样节点' },
+      validate: { label: '验证', color: resolve('--red'), icon: '✓', desc: '数据验证节点' },
+      http: { label: 'HTTP', color: resolve('--accent'), icon: '🌐', desc: 'HTTP请求节点' },
+      cache: { label: '缓存', color: resolve('--purple'), icon: '💾', desc: '数据缓存节点' },
+      log: { label: '日志', color: resolve('--muted'), icon: '📝', desc: '日志记录节点' },
     };
   }, [document.documentElement.dataset.theme]);
   const containerRef = useRef(null);
@@ -81,7 +107,7 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
       if (isAppend) {
         setNodes((prev) => {
           if (prev.length > 0) {
-            const maxX = Math.max(...prev.map((n) => n.x + 180));
+            const maxX = Math.max(...prev.map((n) => n.x + 220)); // 节点宽度220px
             const avgY = prev.reduce((sum, n) => sum + n.y, 0) / prev.length;
             offsetX = maxX + 80;
             offsetY = avgY - 60;
@@ -129,26 +155,26 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
         }
       }
 
-      // 节点逐个出现（每个间隔 0.5s）
-      const NODE_DELAY = 500;
+      // 节点逐个出现（根据节点数量调整间隔）
+      const NODE_DELAY = newNodes.length > 20 ? 150 : 500;
       newNodes.forEach((node, i) => {
         setTimeout(() => {
           setNodes((prev) => [...prev, node]);
           setInjectingNodes((prev) => new Set([...prev, node.id]));
-          // 0.8s 后移除动画状态
+          // 动画结束后移除动画状态
           setTimeout(() => {
             setInjectingNodes((prev) => {
               const next = new Set(prev);
               next.delete(node.id);
               return next;
             });
-          }, 800);
+          }, 300);
         }, i * NODE_DELAY);
       });
 
-      // 所有节点就位后，连线逐条出现（每条间隔 0.3s）
-      const EDGE_START = newNodes.length * NODE_DELAY + 400;
-      const EDGE_DELAY = 300;
+      // 所有节点就位后，连线逐条出现（根据连线数量调整间隔）
+      const EDGE_START = newNodes.length * NODE_DELAY + 200;
+      const EDGE_DELAY = newEdges.length > 20 ? 80 : 300;
       newEdges.forEach((edge, i) => {
         setTimeout(() => {
           setEdges((prev) => [...prev, edge]);
@@ -203,12 +229,31 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
   const createNode = useCallback(
     (type, x, y) => {
       const nodeType = NODE_TYPES[type];
+
+      // 如果没有指定坐标，在视图中心创建
+      let finalX = x;
+      let finalY = y;
+
+      if (finalX === undefined || finalY === undefined) {
+        const container = containerRef.current;
+        if (container) {
+          const rect = container.getBoundingClientRect();
+          // 计算视图中心在画布坐标系中的位置
+          finalX = (rect.width / 2 - canvasOffset.x) / zoom - 90; // 90 = 节点宽度的一半
+          finalY = (rect.height / 2 - canvasOffset.y) / zoom - 40; // 40 = 节点高度的一半
+        } else {
+          // 备用方案：在画布中心创建
+          finalX = 0;
+          finalY = 0;
+        }
+      }
+
       const newNode = {
         id: generateId(),
         type,
         label: nodeType.label,
-        x,
-        y,
+        x: finalX,
+        y: finalY,
         inputs: type === 'start' ? [] : [{ id: 'in-1', label: '输入' }],
         outputs: type === 'end' ? [] : [{ id: 'out-1', label: '输出' }],
         config: {},
@@ -216,7 +261,7 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
       setNodes((prev) => [...prev, newNode]);
       setContextMenu(null);
     },
-    [generateId]
+    [generateId, canvasOffset, zoom]
   );
 
   // 删除节点
@@ -272,10 +317,37 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
       const dx = (e.clientX - dragState.startX) / zoom;
       const dy = (e.clientY - dragState.startY) / zoom;
 
+      let newX = dragState.nodeStartX + dx;
+      let newY = dragState.nodeStartY + dy;
+
+      // 边界碰撞检查
+      const nodeWidth = 220;
+      const nodeHeight = 120;
+
+      // 检查左边界
+      if (newX < NODE_BOUNDS.minX) {
+        newX = NODE_BOUNDS.minX;
+      }
+
+      // 检查右边界
+      if (newX + nodeWidth > NODE_BOUNDS.maxX) {
+        newX = NODE_BOUNDS.maxX - nodeWidth;
+      }
+
+      // 检查上边界
+      if (newY < NODE_BOUNDS.minY) {
+        newY = NODE_BOUNDS.minY;
+      }
+
+      // 检查下边界
+      if (newY + nodeHeight > NODE_BOUNDS.maxY) {
+        newY = NODE_BOUNDS.maxY - nodeHeight;
+      }
+
       setNodes((prev) =>
         prev.map((node) =>
           node.id === dragState.nodeId
-            ? { ...node, x: dragState.nodeStartX + dx, y: dragState.nodeStartY + dy }
+            ? { ...node, x: newX, y: newY }
             : node
         )
       );
@@ -301,7 +373,7 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
       const node = nodes.find((n) => n.id === nodeId);
       if (!node) return { x: 0, y: 0 };
 
-      const NODE_W = 180;
+      const NODE_W = 220;  // 节点宽度（与CSS保持一致）
       const HEADER_H = 44;  // node-header 高度
       const PORT_GAP = 22;  // 每个端口占的高度
       const PORT_START = HEADER_H + 14; // 第一个端口的 y 偏移
@@ -441,10 +513,24 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
 
     const handleMouseMove = (e) => {
       e.preventDefault();
-      setCanvasOffset({
-        x: e.clientX - panStartRef.current.x,
-        y: e.clientY - panStartRef.current.y,
-      });
+      const newX = e.clientX - panStartRef.current.x;
+      const newY = e.clientY - panStartRef.current.y;
+
+      // 限制画布拖拽范围
+      const container = containerRef.current;
+      if (container) {
+        const rect = container.getBoundingClientRect();
+        // 计算边界限制（考虑缩放）
+        const minX = -(CANVAS_BOUNDS.maxX * zoom - rect.width / 2);
+        const maxX = rect.width / 2 - (CANVAS_BOUNDS.minX * zoom);
+        const minY = -(CANVAS_BOUNDS.maxY * zoom - rect.height / 2);
+        const maxY = rect.height / 2 - (CANVAS_BOUNDS.minY * zoom);
+
+        setCanvasOffset({
+          x: Math.max(minX, Math.min(maxX, newX)),
+          y: Math.max(minY, Math.min(maxY, newY)),
+        });
+      }
     };
 
     const handleMouseUp = (e) => {
@@ -471,8 +557,17 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      const newOffsetX = mouseX - (mouseX - canvasOffset.x) * (newZoom / zoom);
-      const newOffsetY = mouseY - (mouseY - canvasOffset.y) * (newZoom / zoom);
+      let newOffsetX = mouseX - (mouseX - canvasOffset.x) * (newZoom / zoom);
+      let newOffsetY = mouseY - (mouseY - canvasOffset.y) * (newZoom / zoom);
+
+      // 限制缩放后的偏移范围
+      const minX = -(CANVAS_BOUNDS.maxX * newZoom - rect.width / 2);
+      const maxX = rect.width / 2 - (CANVAS_BOUNDS.minX * newZoom);
+      const minY = -(CANVAS_BOUNDS.maxY * newZoom - rect.height / 2);
+      const maxY = rect.height / 2 - (CANVAS_BOUNDS.minY * newZoom);
+
+      newOffsetX = Math.max(minX, Math.min(maxX, newOffsetX));
+      newOffsetY = Math.max(minY, Math.min(maxY, newOffsetY));
 
       setZoom(newZoom);
       setCanvasOffset({ x: newOffsetX, y: newOffsetY });

@@ -109,7 +109,8 @@
 /* 节点样式 */
 .workflow-node {
   position: absolute;
-  min-width: 180px;
+  width: 220px;
+  min-width: 220px;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -119,6 +120,7 @@
   transition:
     box-shadow 0.2s,
     border-color 0.2s;
+  box-sizing: border-box;
 }
 
 .workflow-node:active {
@@ -210,34 +212,53 @@
 .node-ports {
   display: flex;
   justify-content: space-between;
-  padding: 8px 14px;
+  padding: 8px 0;
   border-top: 1px solid var(--border);
+  position: relative;
 }
 
 .port-group {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .port-group.inputs {
   align-items: flex-start;
+  padding-left: 14px;
 }
 
 .port-group.outputs {
   align-items: flex-end;
+  padding-right: 14px;
 }
 
 .port {
   display: flex;
   align-items: center;
-  gap: 6px;
   font-size: 11px;
   color: var(--muted);
   cursor: crosshair;
-  padding: 4px 8px;
+  padding: 4px 0;
   border-radius: 4px;
   transition: background 0.15s;
+  position: relative;
+  min-height: 22px;
+}
+
+.port span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 80px;
+}
+
+.port.inputs span {
+  margin-left: 14px;
+}
+
+.port.outputs span {
+  margin-right: 14px;
 }
 
 .port:hover {
@@ -246,12 +267,25 @@
 
 .port.inputs {
   flex-direction: row;
-  margin-left: -14px;
 }
 
 .port.outputs {
   flex-direction: row-reverse;
-  margin-right: -14px;
+}
+
+/* 端口圆点绝对定位到节点边缘 */
+.port.inputs .port-dot {
+  position: absolute;
+  left: -7px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.port.outputs .port-dot {
+  position: absolute;
+  right: -7px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .port-dot {
@@ -391,6 +425,15 @@
   height: 1px;
   background: var(--border);
   margin: 4px 10px;
+}
+
+.context-menu-section {
+  padding: 4px 14px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* 小地图 */
@@ -535,6 +578,8 @@
   display: flex;
   flex-wrap: wrap;
   gap: 4px;
+  overflow: hidden;
+  max-height: 40px;
 }
 
 .config-tag {
@@ -546,6 +591,8 @@
   border: 1px solid rgba(108, 140, 255, 0.2);
   border-radius: 4px;
   font-size: 10px;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .config-label {
@@ -555,6 +602,10 @@
 .config-value {
   color: var(--accent);
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 80px;
 }
 
 /* 节点配置面板 */
@@ -564,6 +615,26 @@
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 6px;
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.node-config-panel::-webkit-scrollbar {
+  width: 4px;
+}
+
+.node-config-panel::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.node-config-panel::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.node-config-panel::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
 }
 
 .config-title {
@@ -592,7 +663,8 @@
 }
 
 .config-field input,
-.config-field select {
+.config-field select,
+.config-field textarea {
   width: 100%;
   padding: 6px 8px;
   background: var(--card);
@@ -605,7 +677,8 @@
 }
 
 .config-field input:focus,
-.config-field select:focus {
+.config-field select:focus,
+.config-field textarea:focus {
   border-color: var(--accent);
 }
 
@@ -621,6 +694,13 @@
 .config-field select option {
   background: var(--card);
   color: var(--text);
+}
+
+.config-field textarea {
+  resize: vertical;
+  min-height: 60px;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  line-height: 1.4;
 }
 
 /* 节点最小宽度调整 */
@@ -662,4 +742,23 @@
 
 .workflow-node.injecting {
   animation: nodeAppear 0.6s ease forwards;
+}
+
+/* 节点碰撞边界时的效果 */
+.workflow-node.boundary-hit {
+  animation: boundaryBounce 0.3s ease;
+}
+
+@keyframes boundaryBounce {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+/* 边界提示线（可选） */
+.canvas-boundary-indicator {
+  position: absolute;
+  border: 2px dashed rgba(255, 100, 100, 0.3);
+  pointer-events: none;
+  z-index: 0;
 }

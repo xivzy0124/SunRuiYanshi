@@ -22,29 +22,56 @@ const WORKFLOW_TEMPLATES = {
   '双源融合': {
     name: '双源融合流水线',
     nodes: [
-      { type: 'input', label: '足底压力输入', x: 80, y: 150, config: { source: 'API', url: '/api/pressure', format: 'JSON' } },
-      { type: 'input', label: '三维姿态输入', x: 80, y: 400, config: { source: 'API', url: '/api/posture', format: 'JSON' } },
-      { type: 'process', label: '压力过滤', x: 380, y: 150, config: { operation: '过滤', expression: '无效帧/空值/异常值' } },
-      { type: 'process', label: '姿态过滤', x: 380, y: 400, config: { operation: '过滤', expression: '置信度/空值/异常坐标' } },
-      { type: 'transform', label: '压力映射', x: 680, y: 150, config: { method: '映射', mapping: 'sensor_values → pressure_data' } },
-      { type: 'transform', label: '姿态映射', x: 680, y: 400, config: { method: '映射', mapping: 'landmarks → pose_data' } },
-      { type: 'process', label: '压力计算', x: 980, y: 150, config: { operation: '计算', expression: '重心/COP/压强分布' } },
-      { type: 'process', label: '姿态计算', x: 980, y: 400, config: { operation: '计算', expression: '关节夹角/步态参数' } },
-      { type: 'merge', label: '双流融合 JOIN', x: 1280, y: 275, config: { strategy: '并集', key: 'ts (50ms nearest)' } },
-      { type: 'output', label: '数据入库', x: 1580, y: 220, config: { target: '数据库', url: 't_fusion_health_dataset' } },
-      { type: 'output', label: 'API 发布', x: 1580, y: 340, config: { target: 'API', url: '/api/v1/latest' } },
+      // 足底压力流 (5个节点)
+      { type: 'input', label: '足底压力数据', x: 100, y: 120, config: { source: 'API', url: '/api/pressure', format: 'JSON' } },
+      { type: 'filter', label: '数据过滤', x: 350, y: 150, config: { field: 'frame_data', operator: '不为空', value: '' } },
+      { type: 'transform', label: '字段映射', x: 600, y: 120, config: { method: '映射', mapping: 'sensor_values → pressure_data' } },
+      { type: 'process', label: '特征计算', x: 850, y: 160, config: { operation: '计算', expression: '重心/COP/压强分布' } },
+      { type: 'aggregate', label: '数据聚合', x: 1100, y: 130, config: { groupField: 'ts', function: 'AVG', valueField: 'pressure_data' } },
+
+      // 三维姿态流 (5个节点)
+      { type: 'input', label: '三维姿态数据', x: 150, y: 350, config: { source: 'API', url: '/api/posture', format: 'JSON' } },
+      { type: 'filter', label: '数据过滤', x: 400, y: 380, config: { field: 'confidence', operator: '大于', value: '0.8' } },
+      { type: 'transform', label: '字段映射', x: 650, y: 340, config: { method: '映射', mapping: 'landmarks → pose_data' } },
+      { type: 'process', label: '特征提取', x: 900, y: 390, config: { operation: '计算', expression: '步频/步幅/对称性' } },
+      { type: 'validate', label: '质量检查', x: 1150, y: 350, config: { rules: '动作完整性/时间连续性', onError: '记录' } },
+
+      // 合并处理 (4个节点)
+      { type: 'merge', label: '双流融合 JOIN', x: 1450, y: 240, config: { strategy: '左连接', key: 'ts (50ms nearest)' } },
+      { type: 'code', label: '特征工程', x: 1700, y: 270, config: { language: 'Python', code: '# 交叉特征/时序特征\nfeatures = engineer(pressure, pose)', timeout: 60 } },
+      { type: 'process', label: '数据增强', x: 1950, y: 240, config: { operation: '计算', expression: '缺失值插补/异常修复' } },
+      { type: 'validate', label: '质量检查', x: 2200, y: 280, config: { rules: '关联完整性/一致性校验', onError: '停止' } },
+
+      // 输出阶段 (3个节点)
+      { type: 'output', label: '数据入库', x: 2500, y: 200, config: { target: '数据库', url: 't_fusion_health_dataset' } },
+      { type: 'output', label: 'API 发布', x: 2500, y: 320, config: { target: 'API', url: '/api/v1/latest' } },
+      { type: 'log', label: '监控告警', x: 2750, y: 260, config: { level: 'INFO', message: '延迟/吞吐量/异常检测', output: '远程' } },
     ],
     edges: [
-      { source: 0, target: 2 },
-      { source: 1, target: 3 },
-      { source: 2, target: 4 },
-      { source: 3, target: 5 },
-      { source: 4, target: 6 },
-      { source: 5, target: 7 },
-      { source: 6, target: 8 },
+      // 足底压力流连线 (4条)
+      { source: 0, target: 1 },
+      { source: 1, target: 2 },
+      { source: 2, target: 3 },
+      { source: 3, target: 4 },
+
+      // 三维姿态流连线 (4条)
+      { source: 5, target: 6 },
+      { source: 6, target: 7 },
       { source: 7, target: 8 },
       { source: 8, target: 9 },
-      { source: 8, target: 10 },
+
+      // 合并处理连线 (4条)
+      { source: 4, target: 10 },
+      { source: 9, target: 10 },
+      { source: 10, target: 11 },
+      { source: 11, target: 12 },
+      { source: 12, target: 13 },
+
+      // 输出阶段连线 (3条)
+      { source: 13, target: 14 },
+      { source: 13, target: 15 },
+      { source: 14, target: 16 },
+      { source: 15, target: 16 },
     ],
   },
 
@@ -73,11 +100,12 @@ const AI_TEXTS = {
 
 节点已注入到工作流编辑器画布，可点击节点查看详细配置。`,
 
-  '双源融合': `✅ 已生成双源融合流水线，共 11 个节点：
+  '双源融合': `✅ 已生成双源融合流水线，共 17 个节点：
 
-**左流（足底压力）**：📥 输入 → ⚙ 过滤 → 🔄 映射 → ⚙ 计算
-**右流（三维姿态）**：📥 输入 → ⚙ 过滤 → 🔄 映射 → ⚙ 计算
-**融合**：⊕ 双流 JOIN → 📤 数据入库 + 📤 API 发布
+**左流（足底压力）**：📥 输入 → 🔍 过滤 → 🔄 映射 → ⚙ 计算 → 📊 聚合
+**右流（三维姿态）**：📥 输入 → 🔍 过滤 → 🔄 映射 → ⚙ 特征 → ✓ 质量
+**融合**：⊕ 双流 JOIN → ⟨/⟩ 特征工程 → ⚙ 增强 → ✓ 质量
+**输出**：📤 入库 + 📤 API + 📝 监控
 
 节点已注入到编辑器画布，双流并行处理后汇聚融合。`,
 

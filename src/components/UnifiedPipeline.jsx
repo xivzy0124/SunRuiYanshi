@@ -2,12 +2,15 @@ import PipelineNode from './PipelineNode';
 import { pipelineRows, mergedNodes } from '../data/pipelineData';
 
 const STAGE_VARS = [
-  { id: 'source', label: 'SOURCE', cssVar: '--accent' },
-  { id: 'filter', label: 'FILTER', cssVar: '--accent3' },
-  { id: 'map', label: 'MAP', cssVar: '--cyan' },
-  { id: 'calc', label: 'CALC', cssVar: '--purple' },
-  { id: 'join', label: 'JOIN', cssVar: '--green' },
-  { id: 'output', label: 'OUTPUT', cssVar: '--orange' },
+  { id: 'source', label: 'INPUT', cssVar: '--accent' },
+  { id: 'validate', label: 'VALIDATE', cssVar: '--accent3' },
+  { id: 'filter', label: 'FILTER', cssVar: '--cyan' },
+  { id: 'preprocess', label: 'PREPROCESS', cssVar: '--purple' },
+  { id: 'map', label: 'MAP', cssVar: '--pink' },
+  { id: 'normalize', label: 'NORMALIZE', cssVar: '--green' },
+  { id: 'calc', label: 'CALC', cssVar: '--orange' },
+  { id: 'aggregate', label: 'AGGREGATE', cssVar: '--accent2' },
+  { id: 'quality', label: 'QUALITY', cssVar: '--red' },
 ];
 
 function getStages() {
@@ -247,8 +250,8 @@ function StreamRow({ row, stream, activeId, onNodeClick, baseDelay = 0 }) {
 export default function UnifiedPipeline({ activeId, onNodeClick }) {
   const pressureRow = pipelineRows.find((r) => r.id === 'pressure');
   const postureRow = pipelineRows.find((r) => r.id === 'posture');
-  const joinNode = mergedNodes.find((n) => n.id === 'join');
-  const outputNodes = mergedNodes.filter((n) => n.id !== 'join');
+  const mergeNodes = mergedNodes.filter((n) => n.stream === 'merge');
+  const outputNodes = mergedNodes.filter((n) => n.stream === 'out');
   const stages = getStages();
 
   return (
@@ -261,7 +264,7 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
               <div
                 key={stage.id}
                 className={`pl-stage-item pl-stage-${stage.id} reveal-node`}
-                style={{ animationDelay: `${i * 0.3}s`, animationFillMode: 'both' }}
+                style={{ animationDelay: `${i * 0.2}s`, animationFillMode: 'both' }}
               >
                 <span
                   className="pl-stage-badge"
@@ -280,42 +283,47 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
                 stream="a"
                 activeId={activeId}
                 onNodeClick={onNodeClick}
-                baseDelay={0.8}
+                baseDelay={0.5}
               />
               <StreamRow
                 row={postureRow}
                 stream="b"
                 activeId={activeId}
                 onNodeClick={onNodeClick}
-                baseDelay={2.0}
+                baseDelay={1.5}
               />
             </div>
 
-            <div className="reveal-node" style={{ animationDelay: '3.0s', animationFillMode: 'both' }}>
+            <div className="reveal-node" style={{ animationDelay: '2.5s', animationFillMode: 'both' }}>
               <MergeConnector />
             </div>
 
             <div className="pl-right-section">
               <div className="pl-merge-output-group">
-                <div
-                  className="pl-join-col reveal-node"
-                  style={{ animationDelay: '3.8s', animationFillMode: 'both' }}
-                >
-                  <PipelineNode
-                    id={joinNode.id}
-                    label={joinNode.label}
-                    sub={joinNode.sub}
-                    tag={joinNode.tag}
-                    stream="merge"
-                    active={activeId === joinNode.id}
-                    onClick={onNodeClick}
-                    inputCount={joinNode.inputCount}
-                    outputCount={joinNode.outputCount}
-                  />
+                <div className="pl-merge-nodes">
+                  {mergeNodes.map((node, i) => (
+                    <div
+                      key={node.id}
+                      className={`pl-merge-col reveal-node${node.tag ? ' pl-join-col' : ''}`}
+                      style={{ animationDelay: `${3.0 + i * 0.4}s`, animationFillMode: 'both' }}
+                    >
+                      <PipelineNode
+                        id={node.id}
+                        label={node.label}
+                        sub={node.sub}
+                        tag={node.tag}
+                        stream="merge"
+                        active={activeId === node.id}
+                        onClick={onNodeClick}
+                        inputCount={node.inputCount}
+                        outputCount={node.outputCount}
+                      />
+                    </div>
+                  ))}
                 </div>
                 <div
                   className="pl-fork-col reveal-node"
-                  style={{ animationDelay: '4.5s', animationFillMode: 'both' }}
+                  style={{ animationDelay: `${3.0 + mergeNodes.length * 0.4 + 0.3}s`, animationFillMode: 'both' }}
                 >
                   <ForkArrow />
                 </div>
@@ -324,7 +332,7 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
                     <div
                       key={node.id}
                       className="reveal-node"
-                      style={{ animationDelay: `${5.0 + i * 0.5}s`, animationFillMode: 'both' }}
+                      style={{ animationDelay: `${3.0 + mergeNodes.length * 0.4 + 0.8 + i * 0.3}s`, animationFillMode: 'both' }}
                     >
                       <PipelineNode
                         id={node.id}

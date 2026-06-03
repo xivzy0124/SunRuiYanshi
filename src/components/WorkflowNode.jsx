@@ -104,6 +104,123 @@ const NODE_CONFIGS = {
     },
     { key: 'key', label: '合并键', type: 'text', default: '' },
   ],
+  code: [
+    {
+      key: 'language',
+      label: '编程语言',
+      type: 'select',
+      options: ['JavaScript', 'Python', 'SQL', 'Shell'],
+      default: 'JavaScript',
+    },
+    { key: 'code', label: '代码', type: 'textarea', default: '' },
+    { key: 'timeout', label: '超时(秒)', type: 'number', default: 60 },
+  ],
+  sql: [
+    { key: 'database', label: '数据库', type: 'text', default: '' },
+    { key: 'query', label: 'SQL查询', type: 'textarea', default: '' },
+    {
+      key: 'mode',
+      label: '执行模式',
+      type: 'select',
+      options: ['查询', '更新', '批量'],
+      default: '查询',
+    },
+  ],
+  filter: [
+    { key: 'field', label: '过滤字段', type: 'text', default: '' },
+    {
+      key: 'operator',
+      label: '运算符',
+      type: 'select',
+      options: ['等于', '不等于', '大于', '小于', '包含', '正则', '为空', '不为空'],
+      default: '等于',
+    },
+    { key: 'value', label: '过滤值', type: 'text', default: '' },
+  ],
+  aggregate: [
+    { key: 'groupField', label: '分组字段', type: 'text', default: '' },
+    {
+      key: 'function',
+      label: '聚合函数',
+      type: 'select',
+      options: ['COUNT', 'SUM', 'AVG', 'MAX', 'MIN', 'DISTINCT'],
+      default: 'COUNT',
+    },
+    { key: 'valueField', label: '值字段', type: 'text', default: '' },
+  ],
+  sort: [
+    { key: 'field', label: '排序字段', type: 'text', default: '' },
+    {
+      key: 'order',
+      label: '排序方式',
+      type: 'select',
+      options: ['升序', '降序'],
+      default: '升序',
+    },
+    { key: 'limit', label: '限制数量', type: 'number', default: 0 },
+  ],
+  sample: [
+    {
+      key: 'method',
+      label: '采样方式',
+      type: 'select',
+      options: ['随机', '系统', '分层', '首条', '末条'],
+      default: '随机',
+    },
+    { key: 'size', label: '采样大小', type: 'number', default: 100 },
+    { key: 'seed', label: '随机种子', type: 'number', default: 42 },
+  ],
+  validate: [
+    { key: 'rules', label: '验证规则', type: 'textarea', default: '' },
+    {
+      key: 'onError',
+      label: '错误处理',
+      type: 'select',
+      options: ['跳过', '停止', '记录', '默认值'],
+      default: '跳过',
+    },
+    { key: 'default', label: '默认值', type: 'text', default: '' },
+  ],
+  http: [
+    {
+      key: 'method',
+      label: '请求方法',
+      type: 'select',
+      options: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
+      default: 'GET',
+    },
+    { key: 'url', label: '请求地址', type: 'text', default: '' },
+    { key: 'headers', label: '请求头', type: 'textarea', default: '' },
+    { key: 'body', label: '请求体', type: 'textarea', default: '' },
+  ],
+  cache: [
+    {
+      key: 'strategy',
+      label: '缓存策略',
+      type: 'select',
+      options: ['LRU', 'LFU', 'FIFO', 'TTL'],
+      default: 'LRU',
+    },
+    { key: 'ttl', label: '过期时间(秒)', type: 'number', default: 3600 },
+    { key: 'maxSize', label: '最大容量', type: 'number', default: 1000 },
+  ],
+  log: [
+    {
+      key: 'level',
+      label: '日志级别',
+      type: 'select',
+      options: ['DEBUG', 'INFO', 'WARN', 'ERROR'],
+      default: 'INFO',
+    },
+    { key: 'message', label: '日志消息', type: 'text', default: '' },
+    {
+      key: 'output',
+      label: '输出方式',
+      type: 'select',
+      options: ['控制台', '文件', '远程'],
+      default: '控制台',
+    },
+  ],
 };
 
 export default function WorkflowNode({
@@ -132,7 +249,8 @@ export default function WorkflowNode({
         left: `${node.x}px`,
         top: `${node.y}px`,
         borderColor: selected ? nodeType.color : undefined,
-        minWidth: showConfig ? '240px' : '180px',
+        width: showConfig ? '260px' : '220px',
+        minWidth: showConfig ? '260px' : '220px',
       }}
       onMouseDown={onDragStart}
     >
@@ -214,6 +332,13 @@ export default function WorkflowNode({
                   type="number"
                   value={nodeConfig[config.key] || config.default}
                   onChange={(e) => handleConfigChange(config.key, e.target.value)}
+                />
+              ) : config.type === 'textarea' ? (
+                <textarea
+                  value={nodeConfig[config.key] || config.default}
+                  onChange={(e) => handleConfigChange(config.key, e.target.value)}
+                  placeholder={`请输入${config.label}`}
+                  rows={4}
                 />
               ) : (
                 <input
