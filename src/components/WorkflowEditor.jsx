@@ -295,35 +295,32 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
   }, [dragState, zoom]);
 
   // 获取端口在画布中的绝对位置
+  // 纯数学计算端口位置，不依赖 DOM（避免动画期间定位失败）
   const getPortPosition = useCallback(
     (nodeId, portId, portType) => {
       const node = nodes.find((n) => n.id === nodeId);
       if (!node) return { x: 0, y: 0 };
 
-      // 精确估算端口位置（左端口=节点左侧，右端口=节点右侧）
-      const fallback = portType === 'output'
-        ? { x: node.x + 180, y: node.y + 60 }
-        : { x: node.x, y: node.y + 60 };
+      const NODE_W = 180;
+      const HEADER_H = 44;  // node-header 高度
+      const PORT_GAP = 22;  // 每个端口占的高度
+      const PORT_START = HEADER_H + 14; // 第一个端口的 y 偏移
 
-      const nodeEl = document.querySelector(`[data-node-id="${nodeId}"]`);
-      if (!nodeEl) return fallback;
-
-      const portEl = nodeEl.querySelector(`[data-port-id="${portId}"]`);
-      if (!portEl) return fallback;
-
-      // 计算端口相对于节点的位置
-      const nodeRect = nodeEl.getBoundingClientRect();
-      const portRect = portEl.getBoundingClientRect();
-
-      const relativeX = (portRect.left - nodeRect.left + portRect.width / 2) / zoom;
-      const relativeY = (portRect.top - nodeRect.top + portRect.height / 2) / zoom;
-
-      return {
-        x: node.x + relativeX,
-        y: node.y + relativeY,
-      };
+      if (portType === 'output') {
+        const idx = node.outputs.findIndex((p) => p.id === portId);
+        return {
+          x: node.x + NODE_W,
+          y: node.y + PORT_START + Math.max(idx, 0) * PORT_GAP,
+        };
+      } else {
+        const idx = node.inputs.findIndex((p) => p.id === portId);
+        return {
+          x: node.x,
+          y: node.y + PORT_START + Math.max(idx, 0) * PORT_GAP,
+        };
+      }
     },
-    [nodes, zoom]
+    [nodes]
   );
 
   // 开始拖拽连线
