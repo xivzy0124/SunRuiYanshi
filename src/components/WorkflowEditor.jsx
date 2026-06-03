@@ -296,15 +296,20 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
 
   // 获取端口在画布中的绝对位置
   const getPortPosition = useCallback(
-    (nodeId, portId, _portType) => {
+    (nodeId, portId, portType) => {
       const node = nodes.find((n) => n.id === nodeId);
       if (!node) return { x: 0, y: 0 };
 
+      // 精确估算端口位置（左端口=节点左侧，右端口=节点右侧）
+      const fallback = portType === 'output'
+        ? { x: node.x + 180, y: node.y + 60 }
+        : { x: node.x, y: node.y + 60 };
+
       const nodeEl = document.querySelector(`[data-node-id="${nodeId}"]`);
-      if (!nodeEl) return { x: node.x + 90, y: node.y + 60 };
+      if (!nodeEl) return fallback;
 
       const portEl = nodeEl.querySelector(`[data-port-id="${portId}"]`);
-      if (!portEl) return { x: node.x + 90, y: node.y + 60 };
+      if (!portEl) return fallback;
 
       // 计算端口相对于节点的位置
       const nodeRect = nodeEl.getBoundingClientRect();
