@@ -1,16 +1,20 @@
 import PipelineNode from './PipelineNode';
 import { pipelineRows, mergedNodes } from '../data/pipelineData';
 
+// 阶段标签：顺序与每条流的节点列一一对应（共 12 列）
 const STAGE_VARS = [
   { id: 'source', label: 'INPUT', cssVar: '--accent' },
-  { id: 'validate', label: 'VALIDATE', cssVar: '--accent3' },
-  { id: 'filter', label: 'FILTER', cssVar: '--cyan' },
-  { id: 'preprocess', label: 'PREPROCESS', cssVar: '--purple' },
-  { id: 'map', label: 'MAP', cssVar: '--pink' },
-  { id: 'normalize', label: 'NORMALIZE', cssVar: '--green' },
-  { id: 'calc', label: 'CALC', cssVar: '--orange' },
-  { id: 'aggregate', label: 'AGGREGATE', cssVar: '--accent2' },
-  { id: 'quality', label: 'QUALITY', cssVar: '--red' },
+  { id: 'parse', label: 'PARSE', cssVar: '--accent3' },
+  { id: 'validate', label: 'VALIDATE', cssVar: '--cyan' },
+  { id: 'filter', label: 'FILTER', cssVar: '--purple' },
+  { id: 'dedup', label: 'DEDUP', cssVar: '--pink' },
+  { id: 'clean', label: 'CLEAN', cssVar: '--green' },
+  { id: 'map', label: 'MAP', cssVar: '--orange' },
+  { id: 'normalize', label: 'NORMALIZE', cssVar: '--accent2' },
+  { id: 'encode', label: 'ENCODE', cssVar: '--red' },
+  { id: 'calc', label: 'CALC', cssVar: '--accent' },
+  { id: 'aggregate', label: 'AGGREGATE', cssVar: '--cyan' },
+  { id: 'quality', label: 'QUALITY', cssVar: '--purple' },
 ];
 
 function getStages() {
@@ -226,7 +230,7 @@ function StreamRow({ row, stream, activeId, onNodeClick, baseDelay = 0 }) {
           <div
             key={node.id}
             className="pl-node-group reveal-node"
-            style={{ animationDelay: `${baseDelay + i * 0.4}s`, animationFillMode: 'both' }}
+            style={{ animationDelay: `${baseDelay + i * 0.18}s`, animationFillMode: 'both' }}
           >
             {i > 0 && <Arrow color={row.color} />}
             <PipelineNode
@@ -258,22 +262,28 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
     <div className="unified-pipeline">
       <div className="pl-scroll">
         <div className="pl-canvas">
+          {/* 阶段标签：结构与下方 .pl-stream-nodes 完全同构，保证逐列对齐 */}
           <div className="pl-stage-labels">
             <div className="pl-stage-spacer" />
-            {stages.map((stage, i) => (
-              <div
-                key={stage.id}
-                className={`pl-stage-item pl-stage-${stage.id} reveal-node`}
-                style={{ animationDelay: `${i * 0.2}s`, animationFillMode: 'both' }}
-              >
-                <span
-                  className="pl-stage-badge"
-                  style={{ color: stage.color, borderColor: `${stage.color}33` }}
+            <div className="pl-stage-track">
+              {stages.map((stage, i) => (
+                <div
+                  key={stage.id}
+                  className="pl-stage-cell reveal-node"
+                  style={{ animationDelay: `${i * 0.15}s`, animationFillMode: 'both' }}
                 >
-                  {stage.label}
-                </span>
-              </div>
-            ))}
+                  {i > 0 && <span className="pl-stage-arrow-gap" />}
+                  <span className="pl-stage-badge-wrap">
+                    <span
+                      className="pl-stage-badge"
+                      style={{ color: stage.color, borderColor: `${stage.color}33` }}
+                    >
+                      {stage.label}
+                    </span>
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="pl-body">

@@ -1,4 +1,11 @@
 import { useState } from 'react';
+import { Card, Button, Space, Tag, Typography, Form, Select, Input, InputNumber, Tooltip } from 'antd';
+import { SettingOutlined, DeleteOutlined } from '@ant-design/icons';
+import { nodeColors } from '../theme';
+
+const { Text } = Typography;
+const { TextArea } = Input;
+const { Option } = Select;
 
 // 节点配置定义
 const NODE_CONFIGS = {
@@ -236,9 +243,60 @@ export default function WorkflowNode({
   const [showConfig, setShowConfig] = useState(false);
   const configs = NODE_CONFIGS[node.type] || [];
   const nodeConfig = node.config || {};
+  const nodeColor = nodeColors[node.type] || '#6c8cff';
 
   const handleConfigChange = (key, value) => {
     onConfigChange?.(node.id, { ...nodeConfig, [key]: value });
+  };
+
+  const renderConfigField = (config) => {
+    const value = nodeConfig[config.key] || config.default;
+
+    switch (config.type) {
+      case 'select':
+        return (
+          <Select
+            value={value}
+            onChange={(val) => handleConfigChange(config.key, val)}
+            style={{ width: '100%' }}
+            size="small"
+          >
+            {config.options.map((opt) => (
+              <Option key={opt} value={opt}>
+                {opt}
+              </Option>
+            ))}
+          </Select>
+        );
+      case 'number':
+        return (
+          <InputNumber
+            value={value}
+            onChange={(val) => handleConfigChange(config.key, val)}
+            style={{ width: '100%' }}
+            size="small"
+          />
+        );
+      case 'textarea':
+        return (
+          <TextArea
+            value={value}
+            onChange={(e) => handleConfigChange(config.key, e.target.value)}
+            placeholder={`请输入${config.label}`}
+            rows={3}
+            size="small"
+          />
+        );
+      default:
+        return (
+          <Input
+            value={value}
+            onChange={(e) => handleConfigChange(config.key, e.target.value)}
+            placeholder={`请输入${config.label}`}
+            size="small"
+          />
+        );
+    }
   };
 
   return (
@@ -246,118 +304,158 @@ export default function WorkflowNode({
       className={`workflow-node ${selected ? 'selected' : ''} ${injecting ? 'injecting' : ''}`}
       data-node-id={node.id}
       style={{
+        position: 'absolute',
         left: `${node.x}px`,
         top: `${node.y}px`,
-        borderColor: selected ? nodeType.color : undefined,
-        width: showConfig ? '260px' : '220px',
-        minWidth: showConfig ? '260px' : '220px',
+        width: showConfig ? 260 : 220,
+        zIndex: selected ? 30 : 10,
       }}
       onMouseDown={onDragStart}
     >
-      {/* 节点头部 */}
-      <div className="node-header" style={{ background: `${nodeType.color}15` }}>
-        <div
-          className="node-icon"
-          style={{
-            background: `${nodeType.color}25`,
-            color: nodeType.color,
-          }}
-        >
-          {nodeType.icon}
-        </div>
-        <span className="node-label">{node.label}</span>
-        <button
-          className="node-config-btn"
-          onClick={(e) => {
-            e.stopPropagation();
-            setShowConfig(!showConfig);
-          }}
-          title="配置"
-        >
-          ⚙
-        </button>
-        <button
-          className="node-delete"
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete();
-          }}
-          title="删除节点"
-        >
-          ✕
-        </button>
-      </div>
+      <Card
+        size="small"
+        style={{
+          width: '100%',
+          borderColor: selected ? nodeColor : undefined,
+          boxShadow: selected
+            ? `0 0 0 2px ${nodeColor}40, 0 4px 20px ${nodeColor}20`
+            : undefined,
+          overflow: 'hidden',
+        }}
+        styles={{
+          header: {
+            background: `${nodeColor}15`,
+            borderBottom: `1px solid ${nodeColor}30`,
+            padding: '8px 12px',
+            minHeight: 'auto',
+            overflow: 'hidden',
+          },
+          body: {
+            padding: '8px 12px',
+            overflow: 'hidden',
+            // 未展开配置时统一卡片高度，避免标签换行导致大小不一
+            minHeight: showConfig ? undefined : 88,
+          },
+        }}
+        title={
+          <Space size={8} style={{ width: '100%', overflow: 'hidden' }}>
+            <div
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 6,
+                background: `${nodeColor}25`,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: nodeColor,
+                fontSize: 14,
+                flexShrink: 0,
+              }}
+            >
+              {nodeType.icon}
+            </div>
+            <Text
+              strong
+              style={{
+                flex: 1,
+                fontSize: 13,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                minWidth: 0,
+              }}
+            >
+              {node.label}
+            </Text>
+            <Space size={4} style={{ flexShrink: 0 }}>
+              <Tooltip title="配置">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<SettingOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowConfig(!showConfig);
+                  }}
+                  style={{ color: 'var(--muted)' }}
+                />
+              </Tooltip>
+              <Tooltip title="删除">
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete();
+                  }}
+                  style={{ color: 'var(--muted)' }}
+                  danger
+                />
+              </Tooltip>
+            </Space>
+          </Space>
+        }
+      >
+        {/* 节点描述 */}
+        <Text type="secondary" style={{ fontSize: 11, display: 'block', marginBottom: 8 }}>
+          {nodeType.desc}
+        </Text>
 
-      {/* 节点内容 */}
-      <div className="node-body">
-        <div className="node-desc">{nodeType.desc}</div>
-        {/* 显示配置摘要 */}
+        {/* 配置摘要 */}
         {Object.keys(nodeConfig).length > 0 && !showConfig && (
-          <div className="node-config-summary">
+          <Space size={4} wrap style={{ marginBottom: 8 }}>
             {Object.entries(nodeConfig)
               .slice(0, 2)
               .map(([key, val]) => {
                 const configDef = configs.find((c) => c.key === key);
                 return val ? (
-                  <div key={key} className="config-tag">
-                    <span className="config-label">{configDef?.label || key}:</span>
-                    <span className="config-value">{val}</span>
-                  </div>
+                  <Tag
+                    key={key}
+                    color="blue"
+                    style={{ margin: 0, fontSize: 10 }}
+                  >
+                    {configDef?.label || key}: {String(val).slice(0, 10)}
+                  </Tag>
                 ) : null;
               })}
+          </Space>
+        )}
+
+        {/* 配置面板 */}
+        {showConfig && configs.length > 0 && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              marginTop: 8,
+              padding: '8px 0',
+              borderTop: '1px solid var(--border)',
+            }}
+          >
+            <Text strong style={{ fontSize: 11, display: 'block', marginBottom: 8 }}>
+              节点配置
+            </Text>
+            <Form layout="vertical" size="small">
+              {configs.map((config) => (
+                <Form.Item
+                  key={config.key}
+                  label={config.label}
+                  style={{ marginBottom: 8 }}
+                >
+                  {renderConfigField(config)}
+                </Form.Item>
+              ))}
+            </Form>
           </div>
         )}
-      </div>
-
-      {/* 配置面板 */}
-      {showConfig && configs.length > 0 && (
-        <div className="node-config-panel" onClick={(e) => e.stopPropagation()}>
-          <div className="config-title">节点配置</div>
-          {configs.map((config) => (
-            <div key={config.key} className="config-field">
-              <label>{config.label}</label>
-              {config.type === 'select' ? (
-                <select
-                  value={nodeConfig[config.key] || config.default}
-                  onChange={(e) => handleConfigChange(config.key, e.target.value)}
-                >
-                  {config.options.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              ) : config.type === 'number' ? (
-                <input
-                  type="number"
-                  value={nodeConfig[config.key] || config.default}
-                  onChange={(e) => handleConfigChange(config.key, e.target.value)}
-                />
-              ) : config.type === 'textarea' ? (
-                <textarea
-                  value={nodeConfig[config.key] || config.default}
-                  onChange={(e) => handleConfigChange(config.key, e.target.value)}
-                  placeholder={`请输入${config.label}`}
-                  rows={4}
-                />
-              ) : (
-                <input
-                  type="text"
-                  value={nodeConfig[config.key] || config.default}
-                  onChange={(e) => handleConfigChange(config.key, e.target.value)}
-                  placeholder={`请输入${config.label}`}
-                />
-              )}
-            </div>
-          ))}
-        </div>
-      )}
+      </Card>
 
       {/* 端口 */}
       <div className="node-ports">
         {/* 输入端口 */}
         <div className="port-group inputs">
-          {node.inputs.map((port, _index) => (
+          {node.inputs.map((port) => (
             <div
               key={port.id}
               className="port inputs"
@@ -367,14 +465,13 @@ export default function WorkflowNode({
               onMouseDown={(e) => onPortMouseDown(node.id, port.id, 'input', e)}
             >
               <div className="port-dot" />
-              <span>{port.label}</span>
             </div>
           ))}
         </div>
 
         {/* 输出端口 */}
         <div className="port-group outputs">
-          {node.outputs.map((port, _index) => (
+          {node.outputs.map((port) => (
             <div
               key={port.id}
               className="port outputs"
@@ -384,7 +481,6 @@ export default function WorkflowNode({
               onMouseDown={(e) => onPortMouseDown(node.id, port.id, 'output', e)}
             >
               <div className="port-dot" />
-              <span>{port.label}</span>
             </div>
           ))}
         </div>

@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Space } from 'antd';
+import { DownloadOutlined, SyncOutlined, ThunderboltOutlined } from '@ant-design/icons';
+import { MonitorHeader } from './PageHeader';
 import '../styles/mockWorkbench.css';
 
 const STANDING_LANDMARKS = {
@@ -152,12 +155,6 @@ const ZONE_LABELS = {
 };
 
 const FOOT_ROW_SIZES = [4, 4, 3, 3, 2, 2];
-
-const AI_RESPONSE = `收到自然语言指令后，我已将任务拆解为一次完整的力姿数据 ETL 编排，并自动生成可执行的数据处理链路。首先，系统识别到本次任务包含两路异构输入：一路是足底压力 API，负责接收左右脚 18 区传感器采样值、压力时间戳、左右脚匹配状态与设备侧原始帧；另一路是三维姿态 API，负责接收 33 个关键点坐标、visibility 置信度、骨架检测状态、帧率与姿态指标。随后我为两路数据分别建立 source schema，统一 session_id、user_id、pose_timestamp 和毫秒级 ts 字段，确保后续可以按同一时间基准做融合。
-
-进入清洗阶段后，压力流会依次剔除无效帧、空数组、缺失脚别、传感器长度异常、ADC 读数越界和明显跳变值；姿态流会校验 body_detected、tracking_ready、关键点数量、visibility 阈值以及 x/y/z 坐标范围，低置信帧会被标记或丢弃。字段映射阶段会把 sensor_values 标准化为 pressure_data，把 left_pressures_json 与 right_pressures_json 拆解为左右脚结构，把 landmarks_xyz、world_landmarks 和 visibility 规整成 pose_data，并补齐字段类型、单位、来源说明和质量标签。
-
-计算阶段会自动派生足底压力重心、COP 坐标、左右平衡、峰值压力、压力分布指数、前后掌负载比例，同时从姿态数据中计算头前倾、肩倾斜、骨盆旋转、躯干侧移、关节夹角、步频、步态速度等特征。最后我使用 50ms nearest 策略执行双流 JOIN，只保留同一时间窗口内压力与姿态都有效的同步帧，并生成匹配质量分数。处理完成后，融合结果会并行写入标准化数据集并发布 RESTful 查询接口，供看板、报告和后续 AI 分析调用。接下来打开数据治理流水线，展示这次自然语言生成的完整处理链路。`;
 
 function randomBetween(min, max, precision = 3) {
   return Number((min + Math.random() * (max - min)).toFixed(precision));
@@ -384,18 +381,10 @@ export default function MockWorkbench({
 }) {
   const [samples, setSamples] = useState([]);
   const [activeIdx, setActiveIdx] = useState(0);
-  const [activeTab, setActiveTab] = useState('skeleton');
+  const [activeTab, setActiveTab] = useState('pressure');
   const [autoTimer, setAutoTimer] = useState(null);
-  const [command, setCommand] = useState(
-    '请根据当前融合样本，自动生成足底压力与三维姿态的 ETL 流水线。'
-  );
-  const [submittedCommand, setSubmittedCommand] = useState('');
-  const [typed, setTyped] = useState('');
-  const [aiState, setAiState] = useState('idle');
   const frontRef = useRef(null);
   const rightRef = useRef(null);
-  const chatThreadRef = useRef(null);
-  const aiTimerRef = useRef(null);
   const activeSample = samples[activeIdx] || samples[0] || null;
 
   const matchMeta = useMemo(() => {
@@ -450,15 +439,9 @@ export default function MockWorkbench({
   useEffect(
     () => () => {
       if (autoTimer) window.clearInterval(autoTimer);
-      if (aiTimerRef.current) window.clearInterval(aiTimerRef.current);
     },
     [autoTimer]
   );
-
-  useEffect(() => {
-    if (!chatThreadRef.current) return;
-    chatThreadRef.current.scrollTop = chatThreadRef.current.scrollHeight;
-  }, [typed, submittedCommand, aiState]);
 
   function fetchSamples(nextCount = randomSampleCount()) {
     setSamples(Array.from({ length: nextCount }, (_, i) => makeSample(i)));
@@ -479,54 +462,43 @@ export default function MockWorkbench({
     setAutoTimer(window.setInterval(() => fetchSamples(), 1000));
   }
 
-  function startAi() {
-    const nextCommand = command.trim();
-    if (!nextCommand || aiState === 'streaming') return;
-    setSubmittedCommand(nextCommand);
-    setAiState('streaming');
-    setTyped('');
-    let index = 0;
-    if (aiTimerRef.current) window.clearInterval(aiTimerRef.current);
-    aiTimerRef.current = window.setInterval(() => {
-      index += 3;
-      setTyped(AI_RESPONSE.slice(0, index));
-      if (index >= AI_RESPONSE.length) {
-        window.clearInterval(aiTimerRef.current);
-        aiTimerRef.current = null;
-        setAiState('done');
-        window.setTimeout(() => onPipelineReady?.(), 850);
-      }
-    }, 28);
-  }
-
   function tabClass(name) {
     return `tab${activeTab === name ? ' active' : ''}`;
   }
 
   return (
     <main className="mock-page">
-      <div className="header">
-        <h1>数据调试中心</h1>
-        <div className="controls">
-          <button className="btn btn-primary" type="button" onClick={() => fetchSamples()}>
-            抽取数据
-          </button>
-          <button className="btn btn-secondary" type="button" onClick={fetchInterval}>
-            完整会话
-          </button>
-          <button className="btn btn-secondary" type="button" onClick={toggleAuto}>
-            {autoTimer ? '停止刷新' : '自动刷新'}
-          </button>
-          <button
-            className="btn btn-secondary"
-            type="button"
-            onClick={onOpenWorkflow}
-            style={{ marginLeft: 8 }}
-          >
-            ⚡ 工作流编辑器
-          </button>
-        </div>
-      </div>
+      <MonitorHeader
+        extra={
+          <Space size={8}>
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={() => fetchSamples()}
+            >
+              抽取数据
+            </Button>
+            <Button
+              icon={<SyncOutlined />}
+              onClick={fetchInterval}
+            >
+              完整会话
+            </Button>
+            <Button
+              icon={<SyncOutlined />}
+              onClick={toggleAuto}
+            >
+              {autoTimer ? '停止刷新' : '自动刷新'}
+            </Button>
+            <Button
+              icon={<ThunderboltOutlined />}
+              onClick={onOpenWorkflow}
+            >
+              工作流编辑器
+            </Button>
+          </Space>
+        }
+      />
 
       <div className="main">
         <div className="sidebar">
@@ -608,6 +580,13 @@ export default function MockWorkbench({
 
               <div className="tabs">
                 <button
+                  className={tabClass('pressure')}
+                  type="button"
+                  onClick={() => setActiveTab('pressure')}
+                >
+                  足底压力
+                </button>
+                <button
                   className={tabClass('skeleton')}
                   type="button"
                   onClick={() => setActiveTab('skeleton')}
@@ -622,19 +601,29 @@ export default function MockWorkbench({
                   体态指标
                 </button>
                 <button
-                  className={tabClass('pressure')}
-                  type="button"
-                  onClick={() => setActiveTab('pressure')}
-                >
-                  足底压力
-                </button>
-                <button
                   className={tabClass('raw')}
                   type="button"
                   onClick={() => setActiveTab('raw')}
                 >
                   原始JSON
                 </button>
+              </div>
+
+              <div className={`panel${activeTab === 'pressure' ? ' active' : ''}`}>
+                <div className="pressure-wrap">
+                  <FootPressure
+                    title="左脚 (left)"
+                    values={JSON.parse(activeSample.left_pressures_json || '[]')}
+                    zones={LEFT_ZONES}
+                    status={activeSample.match_status}
+                  />
+                  <FootPressure
+                    title="右脚 (right)"
+                    values={JSON.parse(activeSample.right_pressures_json || '[]')}
+                    zones={RIGHT_ZONES}
+                    status={activeSample.match_status}
+                  />
+                </div>
               </div>
 
               <div className={`panel${activeTab === 'skeleton' ? ' active' : ''}`}>
@@ -646,58 +635,6 @@ export default function MockWorkbench({
                   <div className="canvas-box">
                     <h3>右侧面 (ZY)</h3>
                     <canvas ref={rightRef} />
-                  </div>
-                  <div className="canvas-box ai-canvas-box">
-                    <h3>AI 编排</h3>
-                    <div className="ai-panel">
-                      <div className="ai-chat-top">
-                        <div className="ai-avatar">AI</div>
-                        <div>
-                          <div className="ai-name">deepseek v4</div>
-                          <div className="ai-presence">
-                            <span />
-                            实时编排在线
-                          </div>
-                        </div>
-                      </div>
-                      <div className="ai-chat-thread" ref={chatThreadRef}>
-                        <div className="chat-message assistant">
-                          <div className="chat-bubble">
-                            当前融合样本已接入，足底压力流与三维姿态流保持同步监听。
-                          </div>
-                        </div>
-                        {submittedCommand && (
-                          <div className="chat-message user">
-                            <div className="chat-bubble">{submittedCommand}</div>
-                          </div>
-                        )}
-                        {(typed || aiState === 'streaming' || aiState === 'done') && (
-                          <div className="chat-message assistant">
-                            <div className="chat-bubble ai-reply">
-                              {typed}
-                              {aiState === 'streaming' && <span className="caret" />}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      <div className="ai-composer">
-                        <textarea
-                          value={command}
-                          onChange={(event) => setCommand(event.target.value)}
-                          disabled={aiState === 'streaming'}
-                          placeholder="输入力姿融合 ETL 指令"
-                          rows={2}
-                        />
-                        <button
-                          className="btn btn-primary ai-send"
-                          type="button"
-                          onClick={startAi}
-                          disabled={aiState === 'streaming' || !command.trim()}
-                        >
-                          {aiState === 'streaming' ? '生成中' : '发送'}
-                        </button>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -781,23 +718,6 @@ export default function MockWorkbench({
                       </div>
                     ))}
                   </div>
-                </div>
-              </div>
-
-              <div className={`panel${activeTab === 'pressure' ? ' active' : ''}`}>
-                <div className="pressure-wrap">
-                  <FootPressure
-                    title="左脚 (left)"
-                    values={JSON.parse(activeSample.left_pressures_json || '[]')}
-                    zones={LEFT_ZONES}
-                    status={activeSample.match_status}
-                  />
-                  <FootPressure
-                    title="右脚 (right)"
-                    values={JSON.parse(activeSample.right_pressures_json || '[]')}
-                    zones={RIGHT_ZONES}
-                    status={activeSample.match_status}
-                  />
                 </div>
               </div>
 

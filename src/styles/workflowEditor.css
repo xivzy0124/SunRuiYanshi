@@ -106,13 +106,13 @@
   transform-origin: 0 0;
 }
 
-/* 节点样式 */
+/* 节点样式 — 卡片视觉由内部 antd Card 提供，外层仅负责定位 */
 .workflow-node {
   position: absolute;
   width: 220px;
   min-width: 220px;
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: transparent;
+  border: none;
   border-radius: 10px;
   cursor: grab;
   user-select: none;
@@ -121,6 +121,7 @@
     box-shadow 0.2s,
     border-color 0.2s;
   box-sizing: border-box;
+  overflow: visible;
 }
 
 .workflow-node:active {
@@ -208,111 +209,58 @@
   line-height: 1.4;
 }
 
-/* 端口样式 */
+/* 端口样式 — 圆点贴合节点左右边缘中线，位置与连线数学计算保持一致 */
 .node-ports {
-  display: flex;
-  justify-content: space-between;
-  padding: 8px 0;
-  border-top: 1px solid var(--border);
-  position: relative;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
 }
 
 .port-group {
+  position: absolute;
+  top: 47px; /* PORT_START(58) − 半个端口高(11)，使第一个端口圆心落在 58px */
   display: flex;
   flex-direction: column;
-  gap: 4px;
 }
 
 .port-group.inputs {
-  align-items: flex-start;
-  padding-left: 14px;
+  left: 0;
+  transform: translateX(-50%);
 }
 
 .port-group.outputs {
-  align-items: flex-end;
-  padding-right: 14px;
+  right: 0;
+  transform: translateX(50%);
 }
 
 .port {
+  width: 14px;
+  height: 22px; /* = PORT_GAP，多端口时圆心间距与计算一致 */
   display: flex;
   align-items: center;
-  font-size: 11px;
-  color: var(--muted);
+  justify-content: center;
   cursor: crosshair;
-  padding: 4px 0;
-  border-radius: 4px;
-  transition: background 0.15s;
-  position: relative;
-  min-height: 22px;
-}
-
-.port span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 80px;
-}
-
-.port.inputs span {
-  margin-left: 14px;
-}
-
-.port.outputs span {
-  margin-right: 14px;
-}
-
-.port:hover {
-  background: rgba(108, 140, 255, 0.1);
-}
-
-.port.inputs {
-  flex-direction: row;
-}
-
-.port.outputs {
-  flex-direction: row-reverse;
-}
-
-/* 端口圆点绝对定位到节点边缘 */
-.port.inputs .port-dot {
-  position: absolute;
-  left: -7px;
-  top: 50%;
-  transform: translateY(-50%);
-}
-
-.port.outputs .port-dot {
-  position: absolute;
-  right: -7px;
-  top: 50%;
-  transform: translateY(-50%);
+  pointer-events: auto;
 }
 
 .port-dot {
-  width: 12px;
-  height: 12px;
+  width: 11px;
+  height: 11px;
   border-radius: 50%;
-  border: 2px solid var(--muted);
-  background: var(--bg);
-  transition: all 0.15s;
-  position: relative;
-}
-
-.port-dot::after {
-  content: '';
-  position: absolute;
-  top: -6px;
-  left: -6px;
-  right: -6px;
-  bottom: -6px;
-  border-radius: 50%;
+  background: var(--card);
+  border: 2px solid #9aa6bb;
+  /* 同色描边遮住穿过圆点的卡片边框/连线，呈现“端点”质感 */
+  box-shadow: 0 0 0 3px var(--card);
+  transition: all 0.15s ease;
 }
 
 .port:hover .port-dot {
   border-color: var(--accent);
   background: var(--accent);
-  box-shadow: 0 0 10px rgba(108, 140, 255, 0.6);
-  transform: scale(1.2);
+  transform: scale(1.25);
+  box-shadow:
+    0 0 0 3px var(--card),
+    0 0 8px rgba(108, 140, 255, 0.5);
 }
 
 .port.connected .port-dot {
@@ -333,26 +281,42 @@
 
 .workflow-edge {
   fill: none;
-  stroke: var(--muted);
+  stroke: #b4bccb;
   stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   pointer-events: none;
   transition:
-    stroke 0.2s,
-    stroke-width 0.2s;
+    stroke 0.3s ease,
+    stroke-width 0.3s ease,
+    opacity 0.3s ease;
+  opacity: 0.9;
+  filter: drop-shadow(0 1px 1px rgba(15, 23, 42, 0.06));
+}
+
+.workflow-edge:hover {
+  opacity: 1;
+  stroke-width: 2.5;
 }
 
 .workflow-edge.selected {
-  stroke: var(--accent);
-  stroke-width: 3;
+  stroke: #6c8cff;
+  stroke-width: 2.5;
+  opacity: 1;
+  filter: drop-shadow(0 2px 4px rgba(108, 140, 255, 0.3));
 }
 
 .workflow-edge-temp {
   fill: none;
-  stroke: var(--accent);
+  stroke: #6c8cff;
   stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
   stroke-dasharray: 8 4;
   pointer-events: none;
-  animation: dash 0.5s linear infinite;
+  animation: dash 0.6s linear infinite;
+  opacity: 0.8;
+  filter: drop-shadow(0 1px 2px rgba(108, 140, 255, 0.2));
 }
 
 @keyframes dash {
@@ -363,15 +327,35 @@
 
 /* 右键菜单 */
 .context-menu {
-  position: absolute;
+  position: fixed;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 10px;
   padding: 6px;
   min-width: 180px;
+  max-height: 70vh;
+  overflow-y: auto;
+  overflow-x: hidden;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   z-index: 1000;
   animation: menuFadeIn 0.15s ease;
+}
+
+.context-menu::-webkit-scrollbar {
+  width: 4px;
+}
+
+.context-menu::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.context-menu::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 2px;
+}
+
+.context-menu::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
 }
 
 @keyframes menuFadeIn {
@@ -701,12 +685,6 @@
   min-height: 60px;
   font-family: 'Cascadia Code', 'Fira Code', monospace;
   line-height: 1.4;
-}
-
-/* 节点最小宽度调整 */
-.workflow-node {
-  min-width: 180px;
-  transition: min-width 0.2s;
 }
 
 /* 端口样式增强 */

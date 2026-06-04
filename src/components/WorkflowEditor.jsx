@@ -1,22 +1,44 @@
 import { useState, useRef, useCallback, useEffect, useMemo, forwardRef, useImperativeHandle } from 'react';
-import '../styles/workflowEditor.css';
+import { Layout, Button, Space, Typography, Tooltip, Badge, message } from 'antd';
+import {
+  DeleteOutlined,
+  FileOutlined,
+  HistoryOutlined,
+  SaveOutlined,
+  PlayCircleOutlined,
+  ZoomInOutlined,
+  ZoomOutOutlined,
+  ReloadOutlined,
+  AimOutlined,
+} from '@ant-design/icons';
 import WorkflowNode from './WorkflowNode';
 import ContextMenu from './ContextMenu';
+import { WorkflowHeader } from './PageHeader';
+import { nodeIcons } from './Icons';
+import { nodeColors } from '../theme';
+import '../styles/workflowEditor.css';
 
-// 画布边界常量
+const { Header, Content } = Layout;
+const { Text } = Typography;
+
+// 画布尺寸（与下方 .workflow-canvas 的 width/height 保持一致）
+const CANVAS_SIZE = 4000;
+
+// 画布平移边界 = 真实画布坐标系 0~CANVAS_SIZE
+// 平移时允许把画布内任意点移到视口中心，超出画布则不再留空白
 const CANVAS_BOUNDS = {
-  minX: -2000,
-  maxX: 2000,
-  minY: -2000,
-  maxY: 2000,
+  minX: 0,
+  maxX: CANVAS_SIZE,
+  minY: 0,
+  maxY: CANVAS_SIZE,
 };
 
-// 节点边界（相对于画布边界留出一些边距）
+// 节点边界 = 与画布一致，节点始终待在画布内（拖拽时再减去卡片尺寸）
 const NODE_BOUNDS = {
-  minX: -1800,
-  maxX: 1800,
-  minY: -1800,
-  maxY: 1800,
+  minX: 0,
+  maxX: CANVAS_SIZE,
+  minY: 0,
+  maxY: CANVAS_SIZE,
 };
 
 // 默认节点数据
@@ -53,35 +75,31 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
   const [isPanning, setIsPanning] = useState(false);
   const panStartRef = useRef(null);
   const canvasRef = useRef(null);
-
-  // 主题感知的节点类型定义
-  const NODE_TYPES = useMemo(() => {
-    const style = getComputedStyle(document.documentElement);
-    const resolve = (cssVar) => style.getPropertyValue(cssVar).trim();
-    return {
-      start: { label: '开始', color: resolve('--green'), icon: '▶', desc: '工作流开始节点' },
-      end: { label: '结束', color: resolve('--red'), icon: '⏹', desc: '工作流结束节点' },
-      process: { label: '处理', color: resolve('--accent'), icon: '⚙', desc: '数据处理节点' },
-      condition: { label: '条件', color: resolve('--orange'), icon: '❖', desc: '条件判断节点' },
-      input: { label: '输入', color: resolve('--cyan'), icon: '📥', desc: '数据输入节点' },
-      output: { label: '输出', color: resolve('--purple'), icon: '📤', desc: '数据输出节点' },
-      transform: { label: '转换', color: resolve('--pink'), icon: '🔄', desc: '数据转换节点' },
-      merge: { label: '合并', color: resolve('--purple'), icon: '⊕', desc: '数据合并节点' },
-      code: { label: '代码块', color: resolve('--accent3'), icon: '⟨/⟩', desc: '自定义代码执行节点' },
-      sql: { label: 'SQL', color: resolve('--accent2'), icon: '🗃', desc: 'SQL查询执行节点' },
-      filter: { label: '过滤', color: resolve('--cyan'), icon: '🔍', desc: '数据过滤筛选节点' },
-      aggregate: { label: '聚合', color: resolve('--orange'), icon: '📊', desc: '数据聚合统计节点' },
-      sort: { label: '排序', color: resolve('--pink'), icon: '↕', desc: '数据排序节点' },
-      sample: { label: '采样', color: resolve('--green'), icon: '🎲', desc: '数据采样节点' },
-      validate: { label: '验证', color: resolve('--red'), icon: '✓', desc: '数据验证节点' },
-      http: { label: 'HTTP', color: resolve('--accent'), icon: '🌐', desc: 'HTTP请求节点' },
-      cache: { label: '缓存', color: resolve('--purple'), icon: '💾', desc: '数据缓存节点' },
-      log: { label: '日志', color: resolve('--muted'), icon: '📝', desc: '日志记录节点' },
-    };
-  }, [document.documentElement.dataset.theme]);
   const containerRef = useRef(null);
   const edgeDragRef = useRef(null);
   const [injectingNodes, setInjectingNodes] = useState(new Set());
+
+  // 节点类型定义
+  const NODE_TYPES = useMemo(() => ({
+    start: { label: '开始', icon: nodeIcons.start, desc: '工作流开始节点' },
+    end: { label: '结束', icon: nodeIcons.end, desc: '工作流结束节点' },
+    process: { label: '处理', icon: nodeIcons.process, desc: '数据处理节点' },
+    condition: { label: '条件', icon: nodeIcons.condition, desc: '条件判断节点' },
+    input: { label: '输入', icon: nodeIcons.input, desc: '数据输入节点' },
+    output: { label: '输出', icon: nodeIcons.output, desc: '数据输出节点' },
+    transform: { label: '转换', icon: nodeIcons.transform, desc: '数据转换节点' },
+    merge: { label: '合并', icon: nodeIcons.merge, desc: '数据合并节点' },
+    code: { label: '代码块', icon: nodeIcons.code, desc: '自定义代码执行节点' },
+    sql: { label: 'SQL', icon: nodeIcons.sql, desc: 'SQL查询执行节点' },
+    filter: { label: '过滤', icon: nodeIcons.filter, desc: '数据过滤筛选节点' },
+    aggregate: { label: '聚合', icon: nodeIcons.aggregate, desc: '数据聚合统计节点' },
+    sort: { label: '排序', icon: nodeIcons.sort, desc: '数据排序节点' },
+    sample: { label: '采样', icon: nodeIcons.sample, desc: '数据采样节点' },
+    validate: { label: '验证', icon: nodeIcons.validate, desc: '数据验证节点' },
+    http: { label: 'HTTP', icon: nodeIcons.http, desc: 'HTTP请求节点' },
+    cache: { label: '缓存', icon: nodeIcons.cache, desc: '数据缓存节点' },
+    log: { label: '日志', icon: nodeIcons.log, desc: '日志记录节点' },
+  }), []);
 
   // 生成唯一 ID
   const generateId = useCallback(
@@ -89,7 +107,7 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
     []
   );
 
-  // AI 注入工作流 — 节点逐个出现，连线逐条画出
+  // AI 注入工作流
   const injectWorkflow = useCallback(
     (workflow) => {
       if (!workflow || !workflow.nodes || workflow.nodes.length === 0) return;
@@ -101,13 +119,12 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
         idMap[i] = generateId();
       });
 
-      // 追加模式偏移
       let offsetX = 0;
       let offsetY = 0;
       if (isAppend) {
         setNodes((prev) => {
           if (prev.length > 0) {
-            const maxX = Math.max(...prev.map((n) => n.x + 220)); // 节点宽度220px
+            const maxX = Math.max(...prev.map((n) => n.x + 220));
             const avgY = prev.reduce((sum, n) => sum + n.y, 0) / prev.length;
             offsetX = maxX + 80;
             offsetY = avgY - 60;
@@ -135,13 +152,11 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
         targetHandle: 'in-1',
       }));
 
-      // 清空画布，准备注入
       if (!isAppend) {
         setNodes([]);
         setEdges([]);
       }
 
-      // 自动平移到目标区域
       if (newNodes.length > 0) {
         const avgX = newNodes.reduce((sum, n) => sum + n.x, 0) / newNodes.length;
         const avgY = newNodes.reduce((sum, n) => sum + n.y, 0) / newNodes.length;
@@ -155,13 +170,11 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
         }
       }
 
-      // 节点逐个出现（根据节点数量调整间隔）
       const NODE_DELAY = newNodes.length > 20 ? 150 : 500;
       newNodes.forEach((node, i) => {
         setTimeout(() => {
           setNodes((prev) => [...prev, node]);
           setInjectingNodes((prev) => new Set([...prev, node.id]));
-          // 动画结束后移除动画状态
           setTimeout(() => {
             setInjectingNodes((prev) => {
               const next = new Set(prev);
@@ -172,7 +185,6 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
         }, i * NODE_DELAY);
       });
 
-      // 所有节点就位后，连线逐条出现（根据连线数量调整间隔）
       const EDGE_START = newNodes.length * NODE_DELAY + 200;
       const EDGE_DELAY = newEdges.length > 20 ? 80 : 300;
       newEdges.forEach((edge, i) => {
@@ -180,18 +192,18 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
           setEdges((prev) => [...prev, edge]);
         }, EDGE_START + i * EDGE_DELAY);
       });
+
+      message.success(`已注入 ${newNodes.length} 个节点，${newEdges.length} 条连线`);
     },
     [generateId, zoom]
   );
 
-  // 暴露方法给父组件
   useImperativeHandle(ref, () => ({
     injectWorkflow,
   }), [injectWorkflow]);
 
-  // 处理画布点击（取消选择）
+  // 处理画布点击
   const handleCanvasClick = useCallback((e) => {
-    // 只有点击画布本身时才取消选择
     if (e.target === canvasRef.current || e.target === containerRef.current) {
       setSelectedNode(null);
       setSelectedEdge(null);
@@ -203,7 +215,6 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
   const handleContextMenu = useCallback(
     (e) => {
       e.preventDefault();
-      // 不在节点上右键时才显示
       if (e.target.closest('.workflow-node')) return;
 
       const rect = containerRef.current.getBoundingClientRect();
@@ -220,7 +231,6 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
     [canvasOffset, zoom]
   );
 
-  // 关闭右键菜单
   const closeContextMenu = useCallback(() => {
     setContextMenu(null);
   }, []);
@@ -230,7 +240,6 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
     (type, x, y) => {
       const nodeType = NODE_TYPES[type];
 
-      // 如果没有指定坐标，在视图中心创建
       let finalX = x;
       let finalY = y;
 
@@ -238,11 +247,9 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
         const container = containerRef.current;
         if (container) {
           const rect = container.getBoundingClientRect();
-          // 计算视图中心在画布坐标系中的位置
-          finalX = (rect.width / 2 - canvasOffset.x) / zoom - 90; // 90 = 节点宽度的一半
-          finalY = (rect.height / 2 - canvasOffset.y) / zoom - 40; // 40 = 节点高度的一半
+          finalX = (rect.width / 2 - canvasOffset.x) / zoom - 90;
+          finalY = (rect.height / 2 - canvasOffset.y) / zoom - 40;
         } else {
-          // 备用方案：在画布中心创建
           finalX = 0;
           finalY = 0;
         }
@@ -260,8 +267,9 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
       };
       setNodes((prev) => [...prev, newNode]);
       setContextMenu(null);
+      message.success(`已创建${nodeType.label}节点`);
     },
-    [generateId, canvasOffset, zoom]
+    [generateId, canvasOffset, zoom, NODE_TYPES]
   );
 
   // 删除节点
@@ -269,6 +277,7 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
     setNodes((prev) => prev.filter((n) => n.id !== nodeId));
     setEdges((prev) => prev.filter((e) => e.source !== nodeId && e.target !== nodeId));
     setSelectedNode(null);
+    message.success('已删除节点');
   }, []);
 
   // 更新节点配置
@@ -276,10 +285,9 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
     setNodes((prev) => prev.map((node) => (node.id === nodeId ? { ...node, config } : node)));
   }, []);
 
-  // 处理节点拖拽 - 使用 mousedown/mousemove/mouseup 模式
+  // 处理节点拖拽
   const handleNodeMouseDown = useCallback(
     (nodeId, e) => {
-      // 忽略端口、按钮和配置面板的点击
       if (
         e.target.closest('.port') ||
         e.target.closest('button') ||
@@ -320,29 +328,13 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
       let newX = dragState.nodeStartX + dx;
       let newY = dragState.nodeStartY + dy;
 
-      // 边界碰撞检查
       const nodeWidth = 220;
       const nodeHeight = 120;
 
-      // 检查左边界
-      if (newX < NODE_BOUNDS.minX) {
-        newX = NODE_BOUNDS.minX;
-      }
-
-      // 检查右边界
-      if (newX + nodeWidth > NODE_BOUNDS.maxX) {
-        newX = NODE_BOUNDS.maxX - nodeWidth;
-      }
-
-      // 检查上边界
-      if (newY < NODE_BOUNDS.minY) {
-        newY = NODE_BOUNDS.minY;
-      }
-
-      // 检查下边界
-      if (newY + nodeHeight > NODE_BOUNDS.maxY) {
-        newY = NODE_BOUNDS.maxY - nodeHeight;
-      }
+      if (newX < NODE_BOUNDS.minX) newX = NODE_BOUNDS.minX;
+      if (newX + nodeWidth > NODE_BOUNDS.maxX) newX = NODE_BOUNDS.maxX - nodeWidth;
+      if (newY < NODE_BOUNDS.minY) newY = NODE_BOUNDS.minY;
+      if (newY + nodeHeight > NODE_BOUNDS.maxY) newY = NODE_BOUNDS.maxY - nodeHeight;
 
       setNodes((prev) =>
         prev.map((node) =>
@@ -366,17 +358,16 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
     };
   }, [dragState, zoom]);
 
-  // 获取端口在画布中的绝对位置
-  // 纯数学计算端口位置，不依赖 DOM（避免动画期间定位失败）
+  // 获取端口位置
   const getPortPosition = useCallback(
     (nodeId, portId, portType) => {
       const node = nodes.find((n) => n.id === nodeId);
       if (!node) return { x: 0, y: 0 };
 
-      const NODE_W = 220;  // 节点宽度（与CSS保持一致）
-      const HEADER_H = 44;  // node-header 高度
-      const PORT_GAP = 22;  // 每个端口占的高度
-      const PORT_START = HEADER_H + 14; // 第一个端口的 y 偏移
+      const NODE_W = 220;
+      const HEADER_H = 44;
+      const PORT_GAP = 22;
+      const PORT_START = HEADER_H + 14;
 
       if (portType === 'output') {
         const idx = node.outputs.findIndex((p) => p.id === portId);
@@ -404,7 +395,6 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
       const node = nodes.find((n) => n.id === nodeId);
       if (!node) return;
 
-      // 获取端口的实际位置
       const pos = getPortPosition(nodeId, portId, portType);
 
       const state = {
@@ -430,7 +420,6 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
 
     const handleMouseMove = (e) => {
       e.preventDefault();
-      // 计算画布坐标
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
 
@@ -449,7 +438,6 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
 
     const handleMouseUp = (e) => {
       e.preventDefault();
-      // 检查是否释放在一个端口上
       const target = document.elementFromPoint(e.clientX, e.clientY);
       const portElement = target?.closest('.port');
 
@@ -458,7 +446,6 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
         const targetPortId = portElement.dataset.portId;
         const targetPortType = portElement.dataset.portType;
 
-        // 确保不是连接到自己，且是从输出到输入
         if (targetNodeId !== edgeDragRef.current.sourceNodeId && targetPortType === 'input') {
           const newEdge = {
             id: `edge-${Date.now()}`,
@@ -468,6 +455,7 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
             targetHandle: targetPortId,
           };
           setEdges((prev) => [...prev, newEdge]);
+          message.success('已创建连线');
         }
       }
 
@@ -487,12 +475,12 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
   const deleteEdge = useCallback((edgeId) => {
     setEdges((prev) => prev.filter((e) => e.id !== edgeId));
     setSelectedEdge(null);
+    message.success('已删除连线');
   }, []);
 
   // 处理画布平移
   const handlePanStart = useCallback(
     (e) => {
-      // 只有点击画布背景时才平移
       if (e.button !== 0) return;
       if (e.target !== containerRef.current && e.target !== canvasRef.current) return;
 
@@ -516,11 +504,9 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
       const newX = e.clientX - panStartRef.current.x;
       const newY = e.clientY - panStartRef.current.y;
 
-      // 限制画布拖拽范围
       const container = containerRef.current;
       if (container) {
         const rect = container.getBoundingClientRect();
-        // 计算边界限制（考虑缩放）
         const minX = -(CANVAS_BOUNDS.maxX * zoom - rect.width / 2);
         const maxX = rect.width / 2 - (CANVAS_BOUNDS.minX * zoom);
         const minY = -(CANVAS_BOUNDS.maxY * zoom - rect.height / 2);
@@ -544,7 +530,7 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [isPanning]);
+  }, [isPanning, zoom]);
 
   // 处理缩放
   const handleWheel = useCallback(
@@ -560,7 +546,6 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
       let newOffsetX = mouseX - (mouseX - canvasOffset.x) * (newZoom / zoom);
       let newOffsetY = mouseY - (mouseY - canvasOffset.y) * (newZoom / zoom);
 
-      // 限制缩放后的偏移范围
       const minX = -(CANVAS_BOUNDS.maxX * newZoom - rect.width / 2);
       const maxX = rect.width / 2 - (CANVAS_BOUNDS.minX * newZoom);
       const minY = -(CANVAS_BOUNDS.maxY * newZoom - rect.height / 2);
@@ -597,6 +582,15 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
     setCanvasOffset({ x: 0, y: 0 });
   }, []);
 
+  // 清空画布
+  const handleClear = useCallback(() => {
+    setNodes(DEFAULT_NODES);
+    setEdges([]);
+    setSelectedNode(null);
+    setSelectedEdge(null);
+    message.success('已清空画布');
+  }, []);
+
   // 计算临时连线路径
   const tempEdgePath = edgeDragState
     ? (() => {
@@ -606,8 +600,10 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
         const endY = edgeDragState.canvasY;
 
         const dx = Math.abs(endX - startX);
-        const controlPointOffset = Math.max(50, dx * 0.4);
+        const dy = Math.abs(endY - startY);
+        const controlPointOffset = Math.max(30, Math.min(dx * 0.3, 100));
 
+        // 使用更平滑的贝塞尔曲线
         return `M ${startX} ${startY} C ${startX + controlPointOffset} ${startY}, ${endX - controlPointOffset} ${endY}, ${endX} ${endY}`;
       })()
     : '';
@@ -618,11 +614,20 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
       const sourcePos = getPortPosition(edge.source, edge.sourceHandle, 'output');
       const targetPos = getPortPosition(edge.target, edge.targetHandle, 'input');
 
-      const dx = Math.abs(targetPos.x - sourcePos.x);
-      const controlPointOffset = Math.max(50, dx * 0.4);
+      const dx = targetPos.x - sourcePos.x;
+      const dy = targetPos.y - sourcePos.y;
+      const absDx = Math.abs(dx);
+      const absDy = Math.abs(dy);
+
+      // 计算控制点偏移量，让曲线更平滑
+      const controlPointOffset = Math.max(50, Math.min(absDx * 0.4, 150));
+
+      // 使用更平滑的贝塞尔曲线
+      // 控制点水平延伸，让连线更优雅
+      const path = `M ${sourcePos.x} ${sourcePos.y} C ${sourcePos.x + controlPointOffset} ${sourcePos.y}, ${targetPos.x - controlPointOffset} ${targetPos.y}, ${targetPos.x} ${targetPos.y}`;
 
       return {
-        path: `M ${sourcePos.x} ${sourcePos.y} C ${sourcePos.x + controlPointOffset} ${sourcePos.y}, ${targetPos.x - controlPointOffset} ${targetPos.y}, ${targetPos.x} ${targetPos.y}`,
+        path,
         center: {
           x: (sourcePos.x + targetPos.x) / 2,
           y: (sourcePos.y + targetPos.y) / 2,
@@ -633,232 +638,333 @@ const WorkflowEditor = forwardRef(function WorkflowEditor({
   );
 
   return (
-    <div className="workflow-editor" onClick={handleCanvasClick}>
+    <Layout style={{ height: '100vh', background: 'var(--bg)' }}>
       {/* 顶部工具栏 */}
-      <div className="workflow-toolbar">
-        <div className="toolbar-left">
-          <button className="toolbar-btn" onClick={onBack}>
-            <span className="icon">←</span>
-            返回
-          </button>
-          <h1 className="toolbar-title">
-            工作流<span>编辑器</span>
-          </h1>
-        </div>
-        <div className="toolbar-right">
-          <span className="toolbar-info">
-            节点: {nodes.length} | 连线: {edges.length}
-          </span>
-          <button
-            className="toolbar-btn"
-            onClick={() => {
-              setNodes(DEFAULT_NODES);
-              setEdges([]);
-              setSelectedNode(null);
-              setSelectedEdge(null);
-            }}
-          >
-            <span className="icon">🗑</span>
-            清空
-          </button>
-          {onShowTemplate && (
-            <button className="toolbar-btn" onClick={onShowTemplate}>
-              <span className="icon">📋</span>
-              模板
-            </button>
-          )}
-          {onShowHistory && (
-            <button className="toolbar-btn" onClick={onShowHistory}>
-              <span className="icon">📜</span>
-              历史
-            </button>
-          )}
-          <button className="toolbar-btn">
-            <span className="icon">💾</span>
-            保存
-          </button>
-          <button className="toolbar-btn primary" onClick={onExecute}>
-            <span className="icon">▶</span>
-            运行
-          </button>
-        </div>
-      </div>
+      <WorkflowHeader
+        onBack={onBack}
+        nodeCount={nodes.length}
+        edgeCount={edges.length}
+        extra={
+          <Space size={8}>
+            <Button
+              icon={<DeleteOutlined />}
+              onClick={handleClear}
+            >
+              清空
+            </Button>
+            {onShowTemplate && (
+              <Button
+                icon={<FileOutlined />}
+                onClick={onShowTemplate}
+              >
+                模板
+              </Button>
+            )}
+            {onShowHistory && (
+              <Button
+                icon={<HistoryOutlined />}
+                onClick={onShowHistory}
+              >
+                历史
+              </Button>
+            )}
+            <Button
+              icon={<SaveOutlined />}
+            >
+              保存
+            </Button>
+            <Button
+              type="primary"
+              icon={<PlayCircleOutlined />}
+              onClick={onExecute}
+            >
+              运行
+            </Button>
+          </Space>
+        }
+      />
 
-      {/* 画布容器 */}
-      <div
-        ref={containerRef}
-        className="workflow-canvas-container"
-        onMouseDown={handlePanStart}
-        onContextMenu={handleContextMenu}
-      >
+      <Content style={{ position: 'relative', overflow: 'hidden' }}>
+        {/* 画布容器 */}
         <div
-          ref={canvasRef}
-          className="workflow-canvas"
+          ref={containerRef}
+          className="workflow-canvas-container"
+          onMouseDown={handlePanStart}
+          onContextMenu={handleContextMenu}
           style={{
-            transform: `translate(${canvasOffset.x}px, ${canvasOffset.y}px) scale(${zoom})`,
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            cursor: isPanning ? 'grabbing' : 'default',
           }}
         >
-          {/* 提示文字 */}
-          {nodes.length <= 1 && edges.length === 0 && (
-            <div className="workflow-hint">
-              <div className="hint-icon">🎯</div>
-              <div className="hint-text">
-                <strong>右键</strong> 点击画布创建节点
-                <br />从 <strong>输出端口 ●</strong> 拖拽到 <strong>输入端口 ●</strong> 创建连线
-                <br />
-                点击节点 <strong>⚙</strong> 按钮配置参数
-                <br />
-                按住 <strong>鼠标左键</strong> 拖拽画布
+          <div
+            ref={canvasRef}
+            className="workflow-canvas"
+            style={{
+              position: 'absolute',
+              width: CANVAS_SIZE,
+              height: CANVAS_SIZE,
+              backgroundImage: 'radial-gradient(circle, var(--grid-color) 1px, transparent 1px)',
+              backgroundSize: '20px 20px',
+              transformOrigin: '0 0',
+              transform: `translate(${canvasOffset.x}px, ${canvasOffset.y}px) scale(${zoom})`,
+            }}
+          >
+            {/* 提示文字 */}
+            {nodes.length <= 1 && edges.length === 0 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  textAlign: 'center',
+                  color: 'var(--muted)',
+                }}
+              >
+                <AimOutlined style={{ fontSize: 48, marginBottom: 16 }} />
+                <div>
+                  <Text strong>右键</Text> 点击画布创建节点
+                </div>
+                <div>
+                  从 <Text strong>输出端口 ●</Text> 拖拽到 <Text strong>输入端口 ●</Text> 创建连线
+                </div>
+                <div>
+                  点击节点 <Text strong>⚙</Text> 按钮配置参数
+                </div>
+                <div>
+                  按住 <Text strong>鼠标左键</Text> 拖拽画布
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* 连线 SVG */}
-          <svg className="workflow-edges">
-            {edges.map((edge) => {
-              const { path, center } = getEdgePath(edge);
-              const isSelected = selectedEdge === edge.id;
+            {/* 连线 SVG */}
+            <svg
+              className="workflow-edges"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                pointerEvents: 'none',
+                zIndex: 5,
+              }}
+            >
+              {edges.map((edge) => {
+                const { path, center } = getEdgePath(edge);
+                const isSelected = selectedEdge === edge.id;
 
-              return (
-                <g key={edge.id} style={{ animation: 'nodeAppear 0.5s ease both' }}>
-                  {/* 透明的宽线用于点击 */}
-                  <path
-                    d={path}
-                    fill="none"
-                    stroke="transparent"
-                    strokeWidth="16"
-                    style={{ cursor: 'pointer' }}
-                    onMouseDown={(e) => {
-                      e.stopPropagation();
-                      setSelectedEdge(edge.id);
-                      setSelectedNode(null);
-                    }}
-                  />
-                  {/* 可见的连线 */}
-                  <path
-                    className={`workflow-edge ${isSelected ? 'selected' : ''}`}
-                    d={path}
-                    style={{ pointerEvents: 'none' }}
-                  />
-                  {/* 箭头 */}
-                  <polygon
-                    points="-6,-4 6,0 -6,4"
-                    fill={isSelected ? 'var(--accent)' : 'var(--muted)'}
-                    transform={`translate(${center.x}, ${center.y}) rotate(0)`}
-                    style={{ pointerEvents: 'none' }}
-                  />
-                  {/* 选中时显示删除按钮 */}
-                  {isSelected && (
-                    <g
-                      transform={`translate(${center.x}, ${center.y})`}
-                      style={{ cursor: 'pointer' }}
+                return (
+                  <g key={edge.id} style={{ animation: 'nodeAppear 0.5s ease both' }}>
+                    <path
+                      d={path}
+                      fill="none"
+                      stroke="transparent"
+                      strokeWidth="16"
+                      style={{ cursor: 'pointer', pointerEvents: 'stroke' }}
                       onMouseDown={(e) => {
                         e.stopPropagation();
-                        deleteEdge(edge.id);
+                        setSelectedEdge(edge.id);
+                        setSelectedNode(null);
                       }}
-                    >
-                      <circle r="10" fill="var(--red)" stroke="var(--bg)" strokeWidth="2" />
-                      <text
-                        textAnchor="middle"
-                        dominantBaseline="central"
-                        fill="white"
-                        fontSize="10"
-                        fontWeight="bold"
+                    />
+                    <path
+                      className={`workflow-edge ${isSelected ? 'selected' : ''}`}
+                      d={path}
+                      style={{ pointerEvents: 'none' }}
+                    />
+                    {/* 箭头 */}
+                    <polygon
+                      points="-6,-4 6,0 -6,4"
+                      fill={isSelected ? '#6c8cff' : '#94a3b8'}
+                      transform={`translate(${center.x}, ${center.y}) rotate(0)`}
+                      style={{
+                        pointerEvents: 'none',
+                        opacity: isSelected ? 1 : 0.6,
+                        transition: 'all 0.3s ease',
+                      }}
+                    />
+                    {isSelected && (
+                      <g
+                        transform={`translate(${center.x}, ${center.y})`}
+                        style={{ cursor: 'pointer' }}
+                        onMouseDown={(e) => {
+                          e.stopPropagation();
+                          deleteEdge(edge.id);
+                        }}
                       >
-                        ✕
-                      </text>
-                    </g>
-                  )}
+                        <circle r="10" fill="#f87171" stroke="var(--bg)" strokeWidth="2" />
+                        <text
+                          textAnchor="middle"
+                          dominantBaseline="central"
+                          fill="white"
+                          fontSize="10"
+                          fontWeight="bold"
+                        >
+                          ✕
+                        </text>
+                      </g>
+                    )}
+                  </g>
+                );
+              })}
+              {edgeDragState && tempEdgePath && (
+                <g>
+                  <path
+                    className="workflow-edge-temp"
+                    d={tempEdgePath}
+                    style={{ pointerEvents: 'none' }}
+                  />
+                  <circle
+                    cx={edgeDragState.canvasX}
+                    cy={edgeDragState.canvasY}
+                    r="8"
+                    fill="#6c8cff"
+                    opacity="0.6"
+                    style={{
+                      pointerEvents: 'none',
+                      filter: 'drop-shadow(0 2px 4px rgba(108, 140, 255, 0.4))',
+                    }}
+                  />
+                  <circle
+                    cx={edgeDragState.canvasX}
+                    cy={edgeDragState.canvasY}
+                    r="4"
+                    fill="white"
+                    opacity="0.8"
+                    style={{ pointerEvents: 'none' }}
+                  />
                 </g>
-              );
-            })}
-            {/* 临时连线 */}
-            {edgeDragState && tempEdgePath && (
-              <g>
-                <path
-                  className="workflow-edge-temp"
-                  d={tempEdgePath}
-                  style={{ pointerEvents: 'none' }}
-                />
-                {/* 临时端点指示器 */}
-                <circle
-                  cx={edgeDragState.canvasX}
-                  cy={edgeDragState.canvasY}
-                  r="6"
-                  fill="var(--accent)"
-                  opacity="0.5"
-                  style={{ pointerEvents: 'none' }}
-                />
-              </g>
-            )}
-          </svg>
+              )}
+            </svg>
 
-          {/* 节点 */}
+            {/* 节点 */}
+            {nodes.map((node) => (
+              <WorkflowNode
+                key={node.id}
+                node={node}
+                nodeType={NODE_TYPES[node.type]}
+                selected={selectedNode === node.id}
+                injecting={injectingNodes.has(node.id)}
+                onDragStart={(e) => handleNodeMouseDown(node.id, e)}
+                onPortMouseDown={handlePortMouseDown}
+                onDelete={() => deleteNode(node.id)}
+                onConfigChange={handleConfigChange}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* 右键菜单 */}
+        {contextMenu && (
+          <ContextMenu
+            x={contextMenu.x}
+            y={contextMenu.y}
+            nodeTypes={NODE_TYPES}
+            onCreateNode={(type) => createNode(type, contextMenu.canvasX, contextMenu.canvasY)}
+            onClose={closeContextMenu}
+          />
+        )}
+
+        {/* 缩放控制 */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 24,
+            right: 24,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 8,
+            zIndex: 50,
+          }}
+        >
+          <Tooltip title="放大" placement="left">
+            <Button
+              shape="circle"
+              icon={<ZoomInOutlined />}
+              onClick={handleZoomIn}
+            />
+          </Tooltip>
+          <div
+            style={{
+              textAlign: 'center',
+              fontSize: 12,
+              color: 'var(--muted)',
+              background: 'var(--card)',
+              borderRadius: 4,
+              padding: '4px 8px',
+            }}
+          >
+            {Math.round(zoom * 100)}%
+          </div>
+          <Tooltip title="缩小" placement="left">
+            <Button
+              shape="circle"
+              icon={<ZoomOutOutlined />}
+              onClick={handleZoomOut}
+            />
+          </Tooltip>
+          <Tooltip title="重置" placement="left">
+            <Button
+              shape="circle"
+              icon={<ReloadOutlined />}
+              onClick={handleZoomReset}
+            />
+          </Tooltip>
+        </div>
+
+        {/* 小地图 */}
+        <div
+          className="workflow-minimap"
+          style={{
+            position: 'absolute',
+            bottom: 20,
+            right: 80,
+            width: 180,
+            height: 120,
+            background: 'var(--card)',
+            border: '1px solid var(--border)',
+            borderRadius: 8,
+            overflow: 'hidden',
+            zIndex: 50,
+          }}
+        >
           {nodes.map((node) => (
-            <WorkflowNode
+            <div
               key={node.id}
-              node={node}
-              nodeType={NODE_TYPES[node.type]}
-              selected={selectedNode === node.id}
-              injecting={injectingNodes.has(node.id)}
-              onDragStart={(e) => handleNodeMouseDown(node.id, e)}
-              onPortMouseDown={handlePortMouseDown}
-              onDelete={() => deleteNode(node.id)}
-              onConfigChange={handleConfigChange}
+              className={`minimap-node ${selectedNode === node.id ? 'selected' : ''}`}
+              style={{
+                position: 'absolute',
+                width: 6,
+                height: 4,
+                borderRadius: 1,
+                left: `${(node.x / CANVAS_SIZE) * 100}%`,
+                top: `${(node.y / CANVAS_SIZE) * 100}%`,
+                background: nodeColors[node.type] || 'var(--accent)',
+                transition: 'all 0.2s',
+              }}
             />
           ))}
-        </div>
-      </div>
-
-      {/* 右键菜单 */}
-      {contextMenu && (
-        <ContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          nodeTypes={NODE_TYPES}
-          onCreateNode={(type) => createNode(type, contextMenu.canvasX, contextMenu.canvasY)}
-          onClose={closeContextMenu}
-        />
-      )}
-
-      {/* 缩放控制 */}
-      <div className="zoom-controls">
-        <button className="zoom-btn" onClick={handleZoomIn} title="放大">
-          +
-        </button>
-        <div className="zoom-level">{Math.round(zoom * 100)}%</div>
-        <button className="zoom-btn" onClick={handleZoomOut} title="缩小">
-          -
-        </button>
-        <button className="zoom-btn" onClick={handleZoomReset} title="重置">
-          ⟲
-        </button>
-      </div>
-
-      {/* 小地图 */}
-      <div className="workflow-minimap">
-        {nodes.map((node) => (
           <div
-            key={node.id}
-            className={`minimap-node ${selectedNode === node.id ? 'selected' : ''}`}
+            className="minimap-viewport"
             style={{
-              left: `${(node.x / 4000) * 100}%`,
-              top: `${(node.y / 4000) * 100}%`,
-              background: NODE_TYPES[node.type]?.color || 'var(--accent)',
+              position: 'absolute',
+              border: '2px solid var(--accent)',
+              borderRadius: 2,
+              background: 'rgba(108, 140, 255, 0.1)',
+              left: `${(-canvasOffset.x / (CANVAS_SIZE * zoom)) * 100}%`,
+              top: `${(-canvasOffset.y / (CANVAS_SIZE * zoom)) * 100}%`,
+              width: `${(window.innerWidth / (CANVAS_SIZE * zoom)) * 100}%`,
+              height: `${(window.innerHeight / (CANVAS_SIZE * zoom)) * 100}%`,
             }}
           />
-        ))}
-        <div
-          className="minimap-viewport"
-          style={{
-            left: `${(-canvasOffset.x / (4000 * zoom)) * 100}%`,
-            top: `${(-canvasOffset.y / (4000 * zoom)) * 100}%`,
-            width: `${(window.innerWidth / (4000 * zoom)) * 100}%`,
-            height: `${(window.innerHeight / (4000 * zoom)) * 100}%`,
-          }}
-        />
-      </div>
-    </div>
+        </div>
+      </Content>
+    </Layout>
   );
 });
 

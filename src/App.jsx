@@ -1,4 +1,6 @@
 import { useState, useRef, useCallback } from 'react';
+import { ConfigProvider, theme as antTheme } from 'antd';
+import zhCN from 'antd/locale/zh_CN';
 import Navigation from './components/Navigation';
 import AIAssistant from './components/AIAssistant';
 import WorkflowTemplate from './components/WorkflowTemplate';
@@ -8,6 +10,7 @@ import WorkflowEditor from './components/WorkflowEditor';
 import PipelinePage from './components/PipelinePage';
 import useWorkflowStore from './hooks/useWorkflowStore';
 import useTheme from './hooks/useTheme';
+import { lightTheme, darkTheme } from './theme';
 import './styles/theme.css';
 import './styles/unified.css';
 import './styles/etl.css';
@@ -95,36 +98,49 @@ function App() {
     }
   };
 
+  // 选择主题配置
+  const currentThemeConfig = theme === 'dark' ? darkTheme : lightTheme;
+
   return (
-    <div className="app-container">
-      {/* 顶部导航 */}
-      <Navigation
-        currentPage={store.currentPage}
-        onPageChange={handlePageChange}
-        workflowStatus={store.workflowStatus}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-      />
-
-      {/* 页面内容 */}
-      <div className="page-content">{renderCurrentPage()}</div>
-
-      {/* AI 助手 */}
-      <AIAssistant onWorkflowGenerated={handleWorkflowGenerated} />
-
-      {/* 工作流模板库 */}
-      {showTemplate && (
-        <WorkflowTemplate
-          onApplyTemplate={handleApplyTemplate}
-          onClose={() => setShowTemplate(false)}
+    <ConfigProvider
+      locale={zhCN}
+      theme={{
+        ...currentThemeConfig,
+        algorithm: theme === 'dark' ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
+      }}
+    >
+      <div className="app-container">
+        {/* 顶部导航 */}
+        <Navigation
+          currentPage={store.currentPage}
+          onPageChange={handlePageChange}
+          workflowStatus={store.workflowStatus}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
-      )}
 
-      {/* 执行历史 */}
-      {showHistory && (
-        <ExecutionHistory onClose={() => setShowHistory(false)} onRerun={handleRerun} />
-      )}
-    </div>
+        {/* 页面内容 */}
+        <div className="page-content">{renderCurrentPage()}</div>
+
+        {/* AI 助手 — 仅在工作流编辑器页面显示 */}
+        {store.currentPage === 'workflow' && (
+          <AIAssistant onWorkflowGenerated={handleWorkflowGenerated} />
+        )}
+
+        {/* 工作流模板库 */}
+        {showTemplate && (
+          <WorkflowTemplate
+            onApplyTemplate={handleApplyTemplate}
+            onClose={() => setShowTemplate(false)}
+          />
+        )}
+
+        {/* 执行历史 */}
+        {showHistory && (
+          <ExecutionHistory onClose={() => setShowHistory(false)} onRerun={handleRerun} />
+        )}
+      </div>
+    </ConfigProvider>
   );
 }
 

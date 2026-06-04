@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import Header from './Header';
+import { PipelineHeader } from './PageHeader';
 import SectionTitle from './SectionTitle';
 import UnifiedPipeline from './UnifiedPipeline';
 import DetailPanel from './DetailPanel';
@@ -23,7 +23,7 @@ export default function PipelinePage({ onBack }) {
 
   return (
     <div className="etl-app">
-      <Header onBack={onBack} />
+      <PipelineHeader onBack={onBack} />
 
       <div className={`pipe-reveal ${phase >= 1 ? 'visible' : ''}`}>
         <UnifiedPipeline activeId={activeId} onNodeClick={handleNodeClick} />

@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { RobotOutlined, CloseOutlined } from '@ant-design/icons';
 
 // ─── 工作流模板库 ───
 const WORKFLOW_TEMPLATES = {
@@ -22,56 +23,45 @@ const WORKFLOW_TEMPLATES = {
   '双源融合': {
     name: '双源融合流水线',
     nodes: [
-      // 足底压力流 (5个节点)
-      { type: 'input', label: '足底压力数据', x: 100, y: 120, config: { source: 'API', url: '/api/pressure', format: 'JSON' } },
-      { type: 'filter', label: '数据过滤', x: 350, y: 150, config: { field: 'frame_data', operator: '不为空', value: '' } },
-      { type: 'transform', label: '字段映射', x: 600, y: 120, config: { method: '映射', mapping: 'sensor_values → pressure_data' } },
-      { type: 'process', label: '特征计算', x: 850, y: 160, config: { operation: '计算', expression: '重心/COP/压强分布' } },
-      { type: 'aggregate', label: '数据聚合', x: 1100, y: 130, config: { groupField: 'ts', function: 'AVG', valueField: 'pressure_data' } },
+      // 足底压力流 (4个节点) - 上方，对称布局
+      { type: 'input', label: '足底压力', x: 100, y: 100, config: { source: 'API', url: '/api/pressure', format: 'JSON' } },
+      { type: 'filter', label: '数据清洗', x: 400, y: 100, config: { field: 'frame_data', operator: '不为空', value: '' } },
+      { type: 'transform', label: '字段映射', x: 700, y: 100, config: { method: '映射', mapping: 'sensor_values → pressure_data' } },
+      { type: 'process', label: '特征计算', x: 1000, y: 100, config: { operation: '计算', expression: '重心/COP/压强分布' } },
 
-      // 三维姿态流 (5个节点)
-      { type: 'input', label: '三维姿态数据', x: 150, y: 350, config: { source: 'API', url: '/api/posture', format: 'JSON' } },
-      { type: 'filter', label: '数据过滤', x: 400, y: 380, config: { field: 'confidence', operator: '大于', value: '0.8' } },
-      { type: 'transform', label: '字段映射', x: 650, y: 340, config: { method: '映射', mapping: 'landmarks → pose_data' } },
-      { type: 'process', label: '特征提取', x: 900, y: 390, config: { operation: '计算', expression: '步频/步幅/对称性' } },
-      { type: 'validate', label: '质量检查', x: 1150, y: 350, config: { rules: '动作完整性/时间连续性', onError: '记录' } },
+      // 三维姿态流 (4个节点) - 下方，对称布局
+      { type: 'input', label: '三维姿态', x: 100, y: 350, config: { source: 'API', url: '/api/posture', format: 'JSON' } },
+      { type: 'filter', label: '数据清洗', x: 400, y: 350, config: { field: 'confidence', operator: '大于', value: '0.8' } },
+      { type: 'transform', label: '字段映射', x: 700, y: 350, config: { method: '映射', mapping: 'landmarks → pose_data' } },
+      { type: 'process', label: '特征提取', x: 1000, y: 350, config: { operation: '计算', expression: '步频/步幅/对称性' } },
 
-      // 合并处理 (4个节点)
-      { type: 'merge', label: '双流融合 JOIN', x: 1450, y: 240, config: { strategy: '左连接', key: 'ts (50ms nearest)' } },
-      { type: 'code', label: '特征工程', x: 1700, y: 270, config: { language: 'Python', code: '# 交叉特征/时序特征\nfeatures = engineer(pressure, pose)', timeout: 60 } },
-      { type: 'process', label: '数据增强', x: 1950, y: 240, config: { operation: '计算', expression: '缺失值插补/异常修复' } },
-      { type: 'validate', label: '质量检查', x: 2200, y: 280, config: { rules: '关联完整性/一致性校验', onError: '停止' } },
+      // 合并处理 (2个节点) - 中间
+      { type: 'merge', label: '双流融合', x: 1350, y: 220, config: { strategy: '左连接', key: 'ts (50ms nearest)' } },
+      { type: 'validate', label: '质量检查', x: 1650, y: 220, config: { rules: '关联完整性/一致性校验', onError: '停止' } },
 
-      // 输出阶段 (3个节点)
-      { type: 'output', label: '数据入库', x: 2500, y: 200, config: { target: '数据库', url: 't_fusion_health_dataset' } },
-      { type: 'output', label: 'API 发布', x: 2500, y: 320, config: { target: 'API', url: '/api/v1/latest' } },
-      { type: 'log', label: '监控告警', x: 2750, y: 260, config: { level: 'INFO', message: '延迟/吞吐量/异常检测', output: '远程' } },
+      // 输出阶段 (2个节点) - 右侧
+      { type: 'output', label: '数据入库', x: 2000, y: 100, config: { target: '数据库', url: 't_fusion_health_dataset' } },
+      { type: 'output', label: 'API 发布', x: 2000, y: 350, config: { target: 'API', url: '/api/v1/latest' } },
     ],
     edges: [
-      // 足底压力流连线 (4条)
+      // 足底压力流连线 (3条)
       { source: 0, target: 1 },
       { source: 1, target: 2 },
       { source: 2, target: 3 },
-      { source: 3, target: 4 },
 
-      // 三维姿态流连线 (4条)
+      // 三维姿态流连线 (3条)
+      { source: 4, target: 5 },
       { source: 5, target: 6 },
       { source: 6, target: 7 },
+
+      // 合并处理连线 (3条)
+      { source: 3, target: 8 },
       { source: 7, target: 8 },
       { source: 8, target: 9 },
 
-      // 合并处理连线 (4条)
-      { source: 4, target: 10 },
+      // 输出阶段连线 (2条)
       { source: 9, target: 10 },
-      { source: 10, target: 11 },
-      { source: 11, target: 12 },
-      { source: 12, target: 13 },
-
-      // 输出阶段连线 (3条)
-      { source: 13, target: 14 },
-      { source: 13, target: 15 },
-      { source: 14, target: 16 },
-      { source: 15, target: 16 },
+      { source: 9, target: 11 },
     ],
   },
 
@@ -100,12 +90,12 @@ const AI_TEXTS = {
 
 节点已注入到工作流编辑器画布，可点击节点查看详细配置。`,
 
-  '双源融合': `✅ 已生成双源融合流水线，共 17 个节点：
+  '双源融合': `✅ 已生成双源融合流水线，共 12 个节点：
 
-**左流（足底压力）**：📥 输入 → 🔍 过滤 → 🔄 映射 → ⚙ 计算 → 📊 聚合
-**右流（三维姿态）**：📥 输入 → 🔍 过滤 → 🔄 映射 → ⚙ 特征 → ✓ 质量
-**融合**：⊕ 双流 JOIN → ⟨/⟩ 特征工程 → ⚙ 增强 → ✓ 质量
-**输出**：📤 入库 + 📤 API + 📝 监控
+**左流（足底压力）**：📥 输入 → 🔍 清洗 → 🔄 映射 → ⚙ 计算
+**右流（三维姿态）**：📥 输入 → 🔍 清洗 → 🔄 映射 → ⚙ 特征
+**融合**：⊕ 双流融合 → ✓ 质量检查
+**输出**：📤 数据入库 + 📤 API 发布
 
 节点已注入到编辑器画布，双流并行处理后汇聚融合。`,
 
@@ -274,7 +264,7 @@ export default function AIAssistant({ onWorkflowGenerated }) {
         onClick={() => setIsOpen(!isOpen)}
         title="AI 助手"
       >
-        {isOpen ? '✕' : '🤖'}
+        {isOpen ? <CloseOutlined /> : <RobotOutlined />}
       </button>
 
       {/* Assistant Panel */}
@@ -282,7 +272,7 @@ export default function AIAssistant({ onWorkflowGenerated }) {
         <div className="ai-assistant-panel">
           <div className="ai-panel-header">
             <div className="ai-header-info">
-              <span className="ai-avatar">🤖</span>
+              <span className="ai-avatar"><RobotOutlined /></span>
               <div>
                 <div className="ai-name">AI 编排助手</div>
                 <div className="ai-status">
@@ -292,7 +282,7 @@ export default function AIAssistant({ onWorkflowGenerated }) {
               </div>
             </div>
             <button className="ai-close-btn" onClick={() => setIsOpen(false)}>
-              ✕
+              <CloseOutlined />
             </button>
           </div>
 

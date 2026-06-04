@@ -29,7 +29,8 @@
       "Bash(awk '{print $2}')",
       "Bash(xargs kill -9)",
       "Bash(node *)",
-      "Bash(ssh -T git@github.com)"
+      "Bash(ssh -T git@github.com)",
+      "Bash(/Users/zhaoxiaowei/SunRuiYanshi/src/components/ --include=\"*.jsx\")"
     ]
   }
 }

@@ -161,8 +161,9 @@
   --pipeline-label-width: clamp(80px, 6.25vw, 120px);
   --pipeline-merge-width: clamp(64px, 5vw, 96px);
   --pipeline-fork-width: clamp(70px, 5.47vw, 105px);
-  --stream-row-gap: clamp(14px, 1.1vw, 21px);
-  --output-gap: clamp(10px, 0.78vw, 15px);
+  --stream-row-gap: clamp(40px, 3.2vw, 72px);
+  --output-gap: clamp(18px, 1.4vw, 28px);
+  --node-gap: clamp(18px, 1.4vw, 28px);
   --node-pad-x: clamp(14px, 1.1vw, 21px);
   --node-pad-y: clamp(10px, 0.78vw, 15px);
   --node-title-size: clamp(13px, 1.02vw, 19px);
@@ -189,53 +190,39 @@
   margin: 0 auto;
 }
 
+/* 阶段标签行：与 .pl-stream-row → .pl-stream-nodes 结构同构，逐列对齐 */
 .pl-stage-labels {
-  display: grid;
-  grid-template-columns:
-    var(--pipeline-label-width)
-    var(--pipeline-card-width)
-    var(--pipeline-arrow-width)
-    var(--pipeline-card-width)
-    var(--pipeline-arrow-width)
-    var(--pipeline-card-width)
-    var(--pipeline-arrow-width)
-    var(--pipeline-card-width)
-    var(--pipeline-connect-width)
-    var(--pipeline-merge-width)
-    var(--pipeline-card-width)
-    var(--pipeline-fork-width)
-    var(--pipeline-card-width);
-  align-items: center;
+  display: flex;
+  align-items: flex-end;
+  width: max-content;
   padding: 0 0 12px;
 }
 
 .pl-stage-spacer {
-  grid-column: 1;
+  flex: 0 0 var(--pipeline-label-width);
 }
 
-.pl-stage-item {
+.pl-stage-track {
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: var(--node-gap);
+  flex: 0 0 auto;
 }
 
-.pl-stage-source {
-  grid-column: 2;
+.pl-stage-cell {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
 }
-.pl-stage-filter {
-  grid-column: 4;
+
+.pl-stage-arrow-gap {
+  flex: 0 0 var(--pipeline-arrow-width);
 }
-.pl-stage-map {
-  grid-column: 6;
-}
-.pl-stage-calc {
-  grid-column: 8;
-}
-.pl-stage-join {
-  grid-column: 11;
-}
-.pl-stage-output {
-  grid-column: 13;
+
+.pl-stage-badge-wrap {
+  flex: 0 0 var(--pipeline-card-width);
+  display: flex;
+  justify-content: center;
 }
 
 .pl-stage-badge {
@@ -294,7 +281,7 @@
   display: flex;
   align-items: center;
   flex: 0 0 auto;
-  gap: 0;
+  gap: var(--node-gap);
 }
 
 .pl-node-group {
@@ -355,7 +342,7 @@
 .pl-merge-nodes {
   display: flex;
   align-items: center;
-  gap: 0;
+  gap: var(--node-gap);
   height: 100%;
 }
 
@@ -562,36 +549,38 @@
 }
 
 .data-flow-arrow svg {
-  opacity: 0.85;
+  opacity: 0.8;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
 }
 
 .data-flow-arrow .flow-dot {
   position: absolute;
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   opacity: 0;
-  animation: flowDot 1.2s ease-in-out infinite;
+  animation: flowDot 1.4s ease-in-out infinite;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
 }
 
 @keyframes flowDot {
   0% {
     left: 0;
     opacity: 0;
-    transform: scale(0.6);
+    transform: scale(0.5);
   }
-  20% {
+  15% {
     opacity: 1;
     transform: scale(1);
   }
-  80% {
+  85% {
     opacity: 1;
     transform: scale(1);
   }
   100% {
-    left: calc(100% - 5px);
+    left: calc(100% - 6px);
     opacity: 0;
-    transform: scale(0.6);
+    transform: scale(0.5);
   }
 }
 
