@@ -8,12 +8,40 @@ const STAGE_VARS = [
   { id: 'normalize', label: 'NORMALIZE', cssVar: '--accent2' },
 ];
 
-function getStages() {
+// 右侧阶段标签：与 融合 → 校验 → 输出 三列一一对应
+const RIGHT_STAGE_VARS = [
+  { id: 'fusion', label: 'FUSION', cssVar: '--green' },
+  { id: 'validate', label: 'VALIDATE', cssVar: '--green' },
+  { id: 'output', label: 'OUTPUT', cssVar: '--orange' },
+];
+
+function resolveStages(vars) {
   const style = getComputedStyle(document.documentElement);
-  return STAGE_VARS.map((s) => ({
+  return vars.map((s) => ({
     ...s,
     color: style.getPropertyValue(s.cssVar).trim(),
   }));
+}
+
+function getStages() {
+  return resolveStages(STAGE_VARS);
+}
+
+function getRightStages() {
+  return resolveStages(RIGHT_STAGE_VARS);
+}
+
+function StageBadge({ stage }) {
+  return (
+    <span className="pl-stage-badge-wrap">
+      <span
+        className="pl-stage-badge"
+        style={{ color: stage.color, borderColor: `${stage.color}33` }}
+      >
+        {stage.label}
+      </span>
+    </span>
+  );
 }
 
 const PIPE_OUTER = 11.5;
@@ -55,7 +83,7 @@ function Arrow({ color, className = 'pl-arrow' }) {
         width="100%"
         height="20"
         viewBox="0 0 48 20"
-        preserveAspectRatio="xMidYMid meet"
+        preserveAspectRatio="none"
         fill="none"
       >
         <path
@@ -248,12 +276,13 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
   const mergeNodes = mergedNodes.filter((n) => n.stream === 'merge');
   const outputNodes = mergedNodes.filter((n) => n.stream === 'out');
   const stages = getStages();
+  const rightStages = getRightStages();
 
   return (
     <div className="unified-pipeline">
       <div className="pl-scroll">
         <div className="pl-canvas">
-          {/* 阶段标签：结构与下方 .pl-stream-nodes 完全同构，保证逐列对齐 */}
+          {/* 阶段标签：结构与下方 .pl-body 完全同构，保证逐列对齐 */}
           <div className="pl-stage-labels">
             <div className="pl-stage-spacer" />
             <div className="pl-stage-track">
@@ -264,16 +293,36 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
                   style={{ animationDelay: `${i * 0.15}s`, animationFillMode: 'both' }}
                 >
                   {i > 0 && <span className="pl-stage-arrow-gap" />}
-                  <span className="pl-stage-badge-wrap">
-                    <span
-                      className="pl-stage-badge"
-                      style={{ color: stage.color, borderColor: `${stage.color}33` }}
-                    >
-                      {stage.label}
-                    </span>
-                  </span>
+                  <StageBadge stage={stage} />
                 </div>
               ))}
+            </div>
+
+            {/* 与 .pl-merge-connector 对齐的占位 */}
+            <span className="pl-stage-merge-spacer" />
+
+            {/* 右侧阶段：融合 / 校验 / 输出，与 .pl-merge-output-group 同构 */}
+            <div className="pl-stage-right-track">
+              <div
+                className="pl-stage-cell reveal-node"
+                style={{ animationDelay: '0.45s', animationFillMode: 'both' }}
+              >
+                <StageBadge stage={rightStages[0]} />
+              </div>
+              <div
+                className="pl-stage-cell reveal-node"
+                style={{ animationDelay: '0.6s', animationFillMode: 'both' }}
+              >
+                <span className="pl-stage-arrow-gap" />
+                <StageBadge stage={rightStages[1]} />
+              </div>
+              <span className="pl-stage-fork-gap" />
+              <div
+                className="pl-stage-cell reveal-node"
+                style={{ animationDelay: '0.75s', animationFillMode: 'both' }}
+              >
+                <StageBadge stage={rightStages[2]} />
+              </div>
             </div>
           </div>
 
@@ -303,22 +352,24 @@ export default function UnifiedPipeline({ activeId, onNodeClick }) {
               <div className="pl-merge-output-group">
                 <div className="pl-merge-nodes">
                   {mergeNodes.map((node, i) => (
-                    <div
-                      key={node.id}
-                      className={`pl-merge-col reveal-node${node.tag ? ' pl-join-col' : ''}`}
-                      style={{ animationDelay: `${3.0 + i * 0.4}s`, animationFillMode: 'both' }}
-                    >
-                      <PipelineNode
-                        id={node.id}
-                        label={node.label}
-                        sub={node.sub}
-                        tag={node.tag}
-                        stream="merge"
-                        active={activeId === node.id}
-                        onClick={onNodeClick}
-                        inputCount={node.inputCount}
-                        outputCount={node.outputCount}
-                      />
+                    <div key={node.id} className="pl-merge-group">
+                      {i > 0 && <Arrow color="var(--green)" />}
+                      <div
+                        className={`pl-merge-col reveal-node${node.tag ? ' pl-join-col' : ''}`}
+                        style={{ animationDelay: `${3.0 + i * 0.4}s`, animationFillMode: 'both' }}
+                      >
+                        <PipelineNode
+                          id={node.id}
+                          label={node.label}
+                          sub={node.sub}
+                          tag={node.tag}
+                          stream="merge"
+                          active={activeId === node.id}
+                          onClick={onNodeClick}
+                          inputCount={node.inputCount}
+                          outputCount={node.outputCount}
+                        />
+                      </div>
                     </div>
                   ))}
                 </div>
