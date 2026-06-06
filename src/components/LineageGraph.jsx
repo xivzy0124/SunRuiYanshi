@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
+import { FullscreenOutlined, FullscreenExitOutlined } from '@ant-design/icons';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -171,6 +172,20 @@ export default function LineageGraph() {
   const apiRef = useRef(null);
   const selectedRef = useRef(null);
   const [selected, setSelected] = useState(null);
+  const [fullscreen, setFullscreen] = useState(false);
+
+  // 全屏时锁定页面滚动 + ESC 退出
+  useEffect(() => {
+    if (!fullscreen) return;
+    const onKey = (e) => { if (e.key === 'Escape') setFullscreen(false); };
+    window.addEventListener('keydown', onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [fullscreen]);
 
   useEffect(() => {
     const container = mountRef.current;
@@ -515,10 +530,17 @@ export default function LineageGraph() {
   const isolated = selected && inEdges.length === 0 && outEdges.length === 0;
 
   return (
-    <div className={`lineage-section lineage-graph-3d${selected ? ' has-detail' : ''}`}>
+    <div className={`lineage-section lineage-graph-3d${selected ? ' has-detail' : ''}${fullscreen ? ' is-fullscreen' : ''}`}>
       <div className="lineage-3d-stage">
         <div className="lineage-3d" ref={mountRef}>
           <div className="l3d-labels" ref={labelsRef} />
+          <button
+            className="lineage-3d-fs-btn"
+            onClick={() => setFullscreen((v) => !v)}
+            title={fullscreen ? '退出全屏 (Esc)' : '全屏显示'}
+          >
+            {fullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+          </button>
           <div className="lineage-3d-hint">拖拽旋转 · 滚轮缩放 · 点击节点查看血缘关系</div>
           <div className="lineage-3d-legend">
             <span><i style={{ background: 'var(--accent)' }} />足底压力</span>

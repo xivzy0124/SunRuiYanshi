@@ -1338,6 +1338,59 @@
   display: block;
 }
 
+/* 全屏开关按钮（右上角） */
+.lineage-3d-fs-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 8;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card) 72%, transparent);
+  color: var(--text);
+  font-size: 16px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: color 0.2s, border-color 0.2s, transform 0.2s, background 0.2s;
+}
+
+.lineage-3d-fs-btn:hover {
+  color: var(--accent3);
+  border-color: var(--accent3);
+  transform: scale(1.07);
+}
+
+/* 全屏模式：整个血缘区域铺满视口 */
+.lineage-graph-3d.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  margin: 0;
+  padding: 16px;
+  background:
+    radial-gradient(120% 120% at 50% 20%, color-mix(in srgb, var(--accent) 6%, transparent), transparent 60%),
+    var(--bg);
+  animation: lineageFsIn 0.3s ease;
+}
+
+@keyframes lineageFsIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.lineage-graph-3d.is-fullscreen .lineage-3d-stage {
+  height: 100%;
+}
+
+.lineage-graph-3d.is-fullscreen .lineage-3d {
+  height: 100%;
+}
+
 .lineage-3d-hint {
   position: absolute;
   top: 12px;
