@@ -152,22 +152,9 @@ function getGenericText(input) {
 }
 
 // ─── 关键词匹配 ───
-function matchTemplate(input) {
-  // 精确匹配预设指令
-  for (const key of Object.keys(AI_TEXTS)) {
-    if (input.includes(key)) return key;
-  }
-  // 通用语义匹配
-  if (input.includes('生成') && (input.includes('流水线') || input.includes('工作流') || input.includes('ETL'))) {
-    if (input.includes('压力') || input.includes('足底')) return '足底压力';
-    return '双源融合';
-  }
-  if (input.includes('添加') || input.includes('追加') || input.includes('新增')) {
-    if (input.includes('异常') || input.includes('检测')) return '异常检测';
-    if (input.includes('缓存') || input.includes('优化')) return '缓存优化';
-    if (input.includes('过滤')) return '足底压力';
-  }
-  return null;
+// 演示模式：无论输入什么，统一生成「双源融合流水线」，跳转到同一条链路
+function matchTemplate() {
+  return '双源融合';
 }
 
 const SUGGESTIONS = [
