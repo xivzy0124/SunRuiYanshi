@@ -89,9 +89,9 @@ export default function DetailPanel({ activeId, onClose }) {
                           : activeId.includes('posture-filter')
                             ? '8,144'
                             : activeId.includes('pressure-map')
-                              ? '9,238'
+                              ? '9,120'
                               : activeId.includes('posture-map')
-                                ? '6,947'
+                                ? '6,892'
                                 : activeId.includes('pressure-calc')
                                   ? '9,107'
                                   : activeId.includes('posture-calc')
@@ -113,9 +113,9 @@ export default function DetailPanel({ activeId, onClose }) {
                       : activeId.includes('posture-input')
                         ? '8,144'
                         : activeId.includes('pressure-filter')
-                          ? '9,238'
+                          ? '9,120'
                           : activeId.includes('posture-filter')
-                            ? '6,947'
+                            ? '6,892'
                             : activeId.includes('pressure-map')
                               ? '9,107'
                               : activeId.includes('posture-map')

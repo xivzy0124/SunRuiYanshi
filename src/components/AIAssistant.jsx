@@ -8,7 +8,7 @@ const WORKFLOW_TEMPLATES = {
     nodes: [
       { type: 'input', label: '足底压力 API', x: 100, y: 250, config: { source: 'API', url: '/api/pressure', format: 'JSON' } },
       { type: 'process', label: '数据过滤', x: 400, y: 250, config: { operation: '过滤', expression: '剔除无效帧/空值/异常值' } },
-      { type: 'transform', label: '字段映射', x: 700, y: 250, config: { method: '映射', mapping: 'sensor_values → pressure_data' } },
+      { type: 'transform', label: '字段标准化', x: 700, y: 250, config: { method: '映射', mapping: 'sensor_values → pressure_data' } },
       { type: 'process', label: '特征计算', x: 1000, y: 250, config: { operation: '计算', expression: '重心/COP/压强分布/平衡比' } },
       { type: 'output', label: '数据入库', x: 1300, y: 250, config: { target: '数据库', url: 't_fusion_health_dataset', format: 'JSON' } },
     ],
@@ -26,13 +26,13 @@ const WORKFLOW_TEMPLATES = {
       // 足底压力流 (4个节点) - 上方，对称布局
       { type: 'input', label: '足底压力', x: 100, y: 100, config: { source: 'API', url: '/api/pressure', format: 'JSON' } },
       { type: 'filter', label: '数据清洗', x: 400, y: 100, config: { field: 'frame_data', operator: '不为空', value: '' } },
-      { type: 'transform', label: '字段映射', x: 700, y: 100, config: { method: '映射', mapping: 'sensor_values → pressure_data' } },
+      { type: 'transform', label: '字段标准化', x: 700, y: 100, config: { method: '映射', mapping: 'sensor_values → pressure_data' } },
       { type: 'process', label: '特征计算', x: 1000, y: 100, config: { operation: '计算', expression: '重心/COP/压强分布' } },
 
       // 三维姿态流 (4个节点) - 下方，对称布局
       { type: 'input', label: '三维姿态', x: 100, y: 350, config: { source: 'API', url: '/api/posture', format: 'JSON' } },
       { type: 'filter', label: '数据清洗', x: 400, y: 350, config: { field: 'confidence', operator: '大于', value: '0.8' } },
-      { type: 'transform', label: '字段映射', x: 700, y: 350, config: { method: '映射', mapping: 'landmarks → pose_data' } },
+      { type: 'transform', label: '字段标准化', x: 700, y: 350, config: { method: '映射', mapping: 'landmarks → pose_data' } },
       { type: 'process', label: '特征提取', x: 1000, y: 350, config: { operation: '计算', expression: '步频/步幅/对称性' } },
 
       // 合并处理 (2个节点) - 中间
@@ -86,14 +86,14 @@ const WORKFLOW_TEMPLATES = {
 const AI_TEXTS = {
   '足底压力': `✅ 已生成足底压力 ETL 流水线，共 5 个节点：
 
-📥 **足底压力 API** → ⚙ **数据过滤** → 🔄 **字段映射** → ⚙ **特征计算** → 📤 **数据入库**
+📥 **足底压力 API** → ⚙ **数据过滤** → 🔄 **字段标准化** → ⚙ **特征计算** → 📤 **数据入库**
 
 节点已注入到工作流编辑器画布，可点击节点查看详细配置。`,
 
   '双源融合': `✅ 已生成双源融合流水线，共 12 个节点：
 
-**左流（足底压力）**：📥 输入 → 🔍 清洗 → 🔄 映射 → ⚙ 计算
-**右流（三维姿态）**：📥 输入 → 🔍 清洗 → 🔄 映射 → ⚙ 特征
+**左流（足底压力）**：📥 输入 → 🔍 清洗 → 🔄 标准化 → ⚙ 计算
+**右流（三维姿态）**：📥 输入 → 🔍 清洗 → 🔄 标准化 → ⚙ 特征
 **融合**：⊕ 双流融合 → ✓ 质量检查
 **输出**：📤 数据入库 + 📤 API 发布
 
@@ -217,7 +217,7 @@ export default function AIAssistant({ onWorkflowGenerated }) {
 
 **分析结果**：
 - 数据源：足底压力 + 三维姿态
-- 处理逻辑：过滤 → 映射 → 计算 → 融合
+- 处理逻辑：清洗 → 标准化 → 时序融合 → 入库/API
 - 输出：标准化数据集 + API
 
 试试输入更具体的指令，如"生成双源融合流水线"`;

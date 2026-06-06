@@ -1,1109 +1,555 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
-import fieldDetails from '../data/detailData';
+import { useState, useRef, useEffect } from 'react';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
-// ─── Colors (CSS 变量，跟随主题切换) ───
-const C = {
-  accent: 'var(--accent)', // pressure
-  accent2: 'var(--cyan)', // posture
-  green: 'var(--green)', // join
-  orange: 'var(--orange)', // output
-  accent3: 'var(--accent3)', // calc
-  muted: 'var(--muted)',
-};
-
-// ─── Stage columns ───
-const STAGES = [
-  { id: 'source', label: 'SOURCE', x: 80, w: 170, color: 'var(--accent)' },
-  { id: 'filter', label: 'FILTER', x: 310, w: 160, color: 'var(--accent3)' },
-  { id: 'map', label: 'MAP', x: 530, w: 160, color: 'var(--cyan)' },
-  { id: 'calc', label: 'CALC', x: 750, w: 170, color: 'var(--purple)' },
-  { id: 'join', label: 'JOIN', x: 990, w: 170, color: 'var(--green)' },
-  { id: 'output', label: 'OUTPUT', x: 1240, w: 210, color: 'var(--orange)' },
+// ─── 全字段节点（MockWorkbench 真实字段 + 处理/输出节点） ───
+const FIELDS = [
+  // 标识
+  { id: 'interval_id', name: 'interval_id', cn: '采样区间ID', type: 'string', cat: '标识', v: '--muted', desc: '每个采集区间的唯一标识，作为融合数据集的主键。' },
+  { id: 'user_id', name: 'user_id', cn: '用户ID', type: 'string', cat: '标识', v: '--muted', desc: '受测用户标识，用于多用户数据隔离，本身不参与融合计算。' },
+  // 时间戳
+  { id: 'pose_timestamp', name: 'pose_timestamp', cn: '姿态时间戳', type: 'int64', cat: '时间戳', v: '--cyan', desc: '人体姿态帧的毫秒级时间戳，双流时序对齐的基准。' },
+  { id: 'left_pressure_timestamp', name: 'left_pressure_timestamp', cn: '左脚压力时间戳', type: 'int64', cat: '时间戳', v: '--accent', desc: '左脚足底压力帧时间戳，用于与姿态帧做毫秒级时序对齐。' },
+  { id: 'right_pressure_timestamp', name: 'right_pressure_timestamp', cn: '右脚压力时间戳', type: 'int64', cat: '时间戳', v: '--accent', desc: '右脚足底压力帧时间戳，用于与姿态帧做毫秒级时序对齐。' },
+  // 时间差
+  { id: 'left_delta_ms', name: 'left_delta_ms', cn: '左脚时间差', type: 'int', cat: '时间差', v: '--accent', desc: '左脚压力与姿态帧的时间偏差(ms)，决定匹配质量。' },
+  { id: 'right_delta_ms', name: 'right_delta_ms', cn: '右脚时间差', type: 'int', cat: '时间差', v: '--accent', desc: '右脚压力与姿态帧的时间偏差(ms)，决定匹配质量。' },
+  // 压力数据
+  { id: 'left_pressures_json', name: 'left_pressures_json', cn: '左脚压力阵列', type: 'json', cat: '压力数据', v: '--accent', desc: '左脚足底压力传感器阵列原始读数(JSON)，清洗标准化后进入融合压力数据。' },
+  { id: 'right_pressures_json', name: 'right_pressures_json', cn: '右脚压力阵列', type: 'json', cat: '压力数据', v: '--accent', desc: '右脚足底压力传感器阵列原始读数(JSON)，清洗标准化后进入融合压力数据。' },
+  // 匹配状态（由时间差判定）
+  { id: 'match_status', name: 'match_status', cn: '匹配状态', type: 'enum', cat: '匹配状态', v: '--green', desc: '左右脚压力与姿态的时序匹配结果，是融合质量的关键标记。' },
+  // 帧率/检测
+  { id: 'fps', name: 'fps', cn: '帧率', type: 'int', cat: '帧率/检测', v: '--orange', desc: '姿态采集帧率(30fps)，质量监控字段，不直接参与融合。' },
+  { id: 'body_detected', name: 'body_detected', cn: '人体检测', type: 'bool', cat: '帧率/检测', v: '--orange', desc: '当前帧是否检测到人体，质量门控标记。' },
+  { id: 'tracking_ready', name: 'tracking_ready', cn: '追踪就绪', type: 'bool', cat: '帧率/检测', v: '--orange', desc: '姿态追踪是否稳定就绪，质量门控标记。' },
+  // 体态角度（由关键点派生）
+  { id: 'head_tilt_deg', name: 'head_tilt_deg', cn: '头前倾角', type: 'float', cat: '体态角度', v: '--cyan', desc: '由关键点计算的头部前倾角度，核心体态评估指标。' },
+  { id: 'shoulder_tilt_deg', name: 'shoulder_tilt_deg', cn: '颈侧倾角', type: 'float', cat: '体态角度', v: '--cyan', desc: '由关键点计算的颈部侧倾角度。' },
+  { id: 'pelvis_tilt_deg', name: 'pelvis_tilt_deg', cn: '颈旋转角', type: 'float', cat: '体态角度', v: '--cyan', desc: '由关键点计算的颈部旋转角度。' },
+  { id: 'trunk_shift_percent', name: 'trunk_shift_percent', cn: '肩倾斜角', type: 'float', cat: '体态角度', v: '--cyan', desc: '由关键点计算的肩部倾斜程度。' },
+  // 身体尺寸（由关键点派生）
+  { id: 'total_height', name: 'total_height', cn: '总身高', type: 'float', cat: '身体尺寸', v: '--cyan', desc: '由关键点估算的归一化总身高。' },
+  { id: 'shoulder_width', name: 'shoulder_width', cn: '肩宽', type: 'float', cat: '身体尺寸', v: '--cyan', desc: '由关键点估算的肩部宽度。' },
+  { id: 'hip_width', name: 'hip_width', cn: '髋宽', type: 'float', cat: '身体尺寸', v: '--cyan', desc: '由关键点估算的髋部宽度。' },
+  { id: 'torso_length', name: 'torso_length', cn: '躯干长', type: 'float', cat: '身体尺寸', v: '--cyan', desc: '由关键点估算的躯干长度。' },
+  { id: 'leg_length', name: 'leg_length', cn: '腿长', type: 'float', cat: '身体尺寸', v: '--cyan', desc: '由关键点估算的腿部长度。' },
+  { id: 'arm_length', name: 'arm_length', cn: '臂长', type: 'float', cat: '身体尺寸', v: '--cyan', desc: '由关键点估算的手臂长度。' },
+  { id: 'head_width', name: 'head_width', cn: '头宽', type: 'float', cat: '身体尺寸', v: '--cyan', desc: '由关键点估算的头部宽度。' },
+  // 中心位置（由关键点派生）
+  { id: 'head_center_x', name: 'head_center_x', cn: '头部中心X', type: 'float', cat: '中心位置', v: '--cyan', desc: '由关键点计算的头部水平中心位置。' },
+  { id: 'shoulder_center_x', name: 'shoulder_center_x', cn: '肩中心X', type: 'float', cat: '中心位置', v: '--cyan', desc: '由关键点计算的肩部水平中心位置。' },
+  { id: 'shoulder_span', name: 'shoulder_span', cn: '肩跨度', type: 'float', cat: '中心位置', v: '--cyan', desc: '由关键点计算的肩部水平跨度。' },
+  // 关键点（姿态源数据 / 中心枢纽）
+  { id: 'landmarks_json', name: 'landmarks_json', cn: '人体关键点', type: 'json', cat: '关键点', v: '--cyan', desc: '33 个三维关键点坐标与置信度(JSON)，姿态分析的源数据，派生全部体态角度与身体尺度指标。' },
 ];
 
-const SVG_W = 1500;
-const SVG_H = 500;
+const PROC = [
+  { id: 'proc:ts', name: 'ts', cn: '统一时间戳', type: 'int64', cat: '融合', v: '--green', desc: '毫秒级对齐后的统一时间戳，双流融合主键。' },
+  { id: 'proc:pressure_data', name: 'pressure_data', cn: '融合压力数据', type: 'float[]', cat: '融合', v: '--green', desc: '左右脚压力清洗标准化后的融合压力数据。' },
+  { id: 'proc:pose_data', name: 'pose_data', cn: '融合姿态数据', type: 'object', cat: '融合', v: '--green', desc: '关键点清洗标准化后的融合姿态数据。' },
+  { id: 'out:db', name: 't_fusion_health_dataset', cn: '体态健康数据集', type: 'table', cat: '输出', v: '--orange', desc: '融合后的标准化持久化数据集，沉淀为专属体态健康数据。' },
+  { id: 'out:api', name: '/api/v1/latest', cn: 'API 接口', type: 'endpoint', cat: '输出', v: '--orange', desc: '对外发布的标准化数据接口，供后续模块实时调用。' },
+];
 
-// ─── Field Nodes ───
-const INITIAL_NODES = {
-  // ── Pressure Source (2个核心字段) ──
-  'src:p:timestamp_ms': {
-    x: 80,
-    y: 100,
-    w: 170,
-    h: 32,
-    name: 'timestamp_ms',
-    type: 'int64',
-    color: C.accent,
-    stage: 'source',
-    pipeline: 'pressure',
-  },
-  'src:p:sensor_values': {
-    x: 80,
-    y: 160,
-    w: 170,
-    h: 32,
-    name: 'sensor_values[18]',
-    type: 'float[]',
-    color: C.accent,
-    stage: 'source',
-    pipeline: 'pressure',
-  },
+const NODES = [...FIELDS, ...PROC];
+const NODE_BY_ID = Object.fromEntries(NODES.map((n) => [n.id, n]));
 
-  // ── Pressure Filter (2个核心字段) ──
-  'flt:p:timestamp_ms': {
-    x: 310,
-    y: 100,
-    w: 160,
-    h: 32,
-    name: 'timestamp_ms',
-    type: 'int64',
-    color: C.accent,
-    stage: 'filter',
-    pipeline: 'pressure',
-  },
-  'flt:p:sensor_values': {
-    x: 310,
-    y: 160,
-    w: 160,
-    h: 32,
-    name: 'sensor_values[18]',
-    type: 'float[]',
-    color: C.accent,
-    stage: 'filter',
-    pipeline: 'pressure',
-  },
+const DERIVED = [
+  'head_tilt_deg', 'shoulder_tilt_deg', 'pelvis_tilt_deg', 'trunk_shift_percent',
+  'total_height', 'shoulder_width', 'hip_width', 'torso_length', 'leg_length', 'arm_length', 'head_width',
+  'head_center_x', 'shoulder_center_x', 'shoulder_span',
+];
 
-  // ── Pressure Map (2个核心字段) ──
-  'map:p:ts': {
-    x: 530,
-    y: 100,
-    w: 160,
-    h: 32,
-    name: 'ts',
-    type: 'int64',
-    color: C.accent,
-    stage: 'map',
-    pipeline: 'pressure',
-  },
-  'map:p:pressure_data': {
-    x: 530,
-    y: 160,
-    w: 160,
-    h: 32,
-    name: 'pressure_data',
-    type: 'float[]',
-    color: C.accent,
-    stage: 'map',
-    pipeline: 'pressure',
-  },
-
-  // ── Pressure Calc (2个核心字段) ──
-  'calc:p:center_of_gravity': {
-    x: 750,
-    y: 100,
-    w: 170,
-    h: 32,
-    name: 'center_of_gravity',
-    type: 'float',
-    color: C.accent,
-    stage: 'calc',
-    pipeline: 'pressure',
-  },
-  'calc:p:cop_x': {
-    x: 750,
-    y: 160,
-    w: 170,
-    h: 32,
-    name: 'cop_x',
-    type: 'float',
-    color: C.accent,
-    stage: 'calc',
-    pipeline: 'pressure',
-  },
-
-  // ── Posture Source (2个核心字段) ──
-  'src:o:frame_timestamp': {
-    x: 80,
-    y: 350,
-    w: 170,
-    h: 32,
-    name: 'frame_timestamp',
-    type: 'int64',
-    color: C.accent2,
-    stage: 'source',
-    pipeline: 'posture',
-  },
-  'src:o:landmarks_xyz': {
-    x: 80,
-    y: 410,
-    w: 170,
-    h: 32,
-    name: 'landmarks[33].x/y/z',
-    type: 'float[]',
-    color: C.accent2,
-    stage: 'source',
-    pipeline: 'posture',
-  },
-
-  // ── Posture Filter (2个核心字段) ──
-  'flt:o:frame_timestamp': {
-    x: 310,
-    y: 350,
-    w: 160,
-    h: 32,
-    name: 'frame_timestamp',
-    type: 'int64',
-    color: C.accent2,
-    stage: 'filter',
-    pipeline: 'posture',
-  },
-  'flt:o:landmarks': {
-    x: 310,
-    y: 410,
-    w: 160,
-    h: 32,
-    name: 'landmarks[33]',
-    type: 'object',
-    color: C.accent2,
-    stage: 'filter',
-    pipeline: 'posture',
-  },
-
-  // ── Posture Map (2个核心字段) ──
-  'map:o:ts': {
-    x: 530,
-    y: 350,
-    w: 160,
-    h: 32,
-    name: 'ts',
-    type: 'int64',
-    color: C.accent2,
-    stage: 'map',
-    pipeline: 'posture',
-  },
-  'map:o:pose_data': {
-    x: 530,
-    y: 410,
-    w: 160,
-    h: 32,
-    name: 'pose_data',
-    type: 'object',
-    color: C.accent2,
-    stage: 'map',
-    pipeline: 'posture',
-  },
-
-  // ── Posture Calc (2个核心字段) ──
-  'calc:o:joint_angle': {
-    x: 750,
-    y: 350,
-    w: 170,
-    h: 32,
-    name: 'joint_angle',
-    type: 'float',
-    color: C.accent2,
-    stage: 'calc',
-    pipeline: 'posture',
-  },
-  'calc:o:step_frequency': {
-    x: 750,
-    y: 410,
-    w: 170,
-    h: 32,
-    name: 'step_frequency',
-    type: 'float',
-    color: C.accent2,
-    stage: 'calc',
-    pipeline: 'posture',
-  },
-
-  // ── Join (3个核心字段) ──
-  'join:merged:ts': {
-    x: 990,
-    y: 200,
-    w: 170,
-    h: 32,
-    name: 'ts',
-    type: 'int64',
-    color: C.green,
-    stage: 'join',
-    pipeline: 'merged',
-  },
-  'join:merged:pressure_data': {
-    x: 990,
-    y: 260,
-    w: 170,
-    h: 32,
-    name: 'pressure_data',
-    type: 'float[]',
-    color: C.green,
-    stage: 'join',
-    pipeline: 'merged',
-  },
-  'join:merged:pose_data': {
-    x: 990,
-    y: 320,
-    w: 170,
-    h: 32,
-    name: 'pose_data',
-    type: 'object',
-    color: C.green,
-    stage: 'join',
-    pipeline: 'merged',
-  },
-
-  // ── Output (2个核心节点) ──
-  'out:db:t_fusion_health_dataset': {
-    x: 1240,
-    y: 220,
-    w: 210,
-    h: 32,
-    name: 't_fusion_health_dataset',
-    type: 'table',
-    color: C.orange,
-    stage: 'output',
-    pipeline: 'merged',
-  },
-  'out:api:latest': {
-    x: 1240,
-    y: 320,
-    w: 210,
-    h: 32,
-    name: '/api/v1/latest',
-    type: 'endpoint',
-    color: C.orange,
-    stage: 'output',
-    pipeline: 'merged',
-  },
-};
-
-// ─── Edges ───
 const EDGES = [
-  // Passthrough: source → filter (4条)
-  {
-    from: 'src:p:timestamp_ms',
-    to: 'flt:p:timestamp_ms',
-    color: C.accent,
-    label: 'pass',
-    transformType: 'passthrough',
-  },
-  {
-    from: 'src:p:sensor_values',
-    to: 'flt:p:sensor_values',
-    color: C.accent,
-    label: 'pass',
-    transformType: 'passthrough',
-  },
-  {
-    from: 'src:o:frame_timestamp',
-    to: 'flt:o:frame_timestamp',
-    color: C.accent2,
-    label: 'pass',
-    transformType: 'passthrough',
-  },
-  {
-    from: 'src:o:landmarks_xyz',
-    to: 'flt:o:landmarks',
-    color: C.accent2,
-    label: 'merge w/ visibility',
-    transformType: 'merge',
-  },
-
-  // Rename: filter → map (4条)
-  {
-    from: 'flt:p:timestamp_ms',
-    to: 'map:p:ts',
-    color: C.accent,
-    label: 'timestamp_ms → ts',
-    transformType: 'rename',
-  },
-  {
-    from: 'flt:p:sensor_values',
-    to: 'map:p:pressure_data',
-    color: C.accent,
-    label: 'sensor_values → pressure_data',
-    transformType: 'rename',
-  },
-  {
-    from: 'flt:o:frame_timestamp',
-    to: 'map:o:ts',
-    color: C.accent2,
-    label: 'frame_timestamp → ts',
-    transformType: 'rename',
-  },
-  {
-    from: 'flt:o:landmarks',
-    to: 'map:o:pose_data',
-    color: C.accent2,
-    label: 'landmarks → pose_data',
-    transformType: 'rename',
-  },
-
-  // Derive: map → calc (4条)
-  {
-    from: 'map:p:pressure_data',
-    to: 'calc:p:center_of_gravity',
-    color: C.accent,
-    label: 'weighted_avg',
-    transformType: 'derive',
-  },
-  {
-    from: 'map:p:pressure_data',
-    to: 'calc:p:cop_x',
-    color: C.accent,
-    label: 'sum(p*x)/sum(p)',
-    transformType: 'derive',
-  },
-  {
-    from: 'map:o:pose_data',
-    to: 'calc:o:joint_angle',
-    color: C.accent2,
-    label: 'acos(dot/|v|)',
-    transformType: 'derive',
-  },
-  {
-    from: 'map:o:pose_data',
-    to: 'calc:o:step_frequency',
-    color: C.accent2,
-    label: '60/mean(peak)',
-    transformType: 'derive',
-  },
-
-  // Merge: map → join (4条)
-  {
-    from: 'map:p:ts',
-    to: 'join:merged:ts',
-    color: C.green,
-    label: 'merge key (L)',
-    transformType: 'merge',
-  },
-  {
-    from: 'map:o:ts',
-    to: 'join:merged:ts',
-    color: C.green,
-    label: 'merge key (R), 50ms',
-    transformType: 'merge',
-  },
-  {
-    from: 'map:p:pressure_data',
-    to: 'join:merged:pressure_data',
-    color: C.green,
-    label: 'from pressure',
-    transformType: 'carry',
-  },
-  {
-    from: 'map:o:pose_data',
-    to: 'join:merged:pose_data',
-    color: C.green,
-    label: 'from posture',
-    transformType: 'carry',
-  },
-
-  // Carry: calc → join (4条)
-  {
-    from: 'calc:p:center_of_gravity',
-    to: 'join:merged:pressure_data',
-    color: C.accent,
-    label: 'carry',
-    transformType: 'carry',
-    dashed: true,
-  },
-  {
-    from: 'calc:p:cop_x',
-    to: 'join:merged:pressure_data',
-    color: C.accent,
-    label: 'carry',
-    transformType: 'carry',
-    dashed: true,
-  },
-  {
-    from: 'calc:o:joint_angle',
-    to: 'join:merged:pose_data',
-    color: C.accent2,
-    label: 'carry',
-    transformType: 'carry',
-    dashed: true,
-  },
-  {
-    from: 'calc:o:step_frequency',
-    to: 'join:merged:pose_data',
-    color: C.accent2,
-    label: 'carry',
-    transformType: 'carry',
-    dashed: true,
-  },
-
-  // Output: join → output (2条)
-  {
-    from: 'join:merged:ts',
-    to: 'out:db:t_fusion_health_dataset',
-    color: C.orange,
-    label: 'indexed: ts, session_id',
-    transformType: 'output',
-  },
-  {
-    from: 'join:merged:ts',
-    to: 'out:api:latest',
-    color: C.orange,
-    label: 'GET /api/v1/latest',
-    transformType: 'output',
-  },
+  { from: 'left_pressures_json', to: 'proc:pressure_data', type: 'clean' },
+  { from: 'right_pressures_json', to: 'proc:pressure_data', type: 'clean' },
+  { from: 'landmarks_json', to: 'proc:pose_data', type: 'clean' },
+  ...DERIVED.map((d) => ({ from: 'landmarks_json', to: d, type: 'derive' })),
+  { from: 'pose_timestamp', to: 'proc:ts', type: 'timealign' },
+  { from: 'left_pressure_timestamp', to: 'proc:ts', type: 'timealign' },
+  { from: 'right_pressure_timestamp', to: 'proc:ts', type: 'timealign' },
+  { from: 'left_delta_ms', to: 'match_status', type: 'match' },
+  { from: 'right_delta_ms', to: 'match_status', type: 'match' },
+  { from: 'proc:ts', to: 'out:db', type: 'converge' },
+  { from: 'proc:pressure_data', to: 'out:db', type: 'converge' },
+  { from: 'proc:pose_data', to: 'out:db', type: 'converge' },
+  { from: 'match_status', to: 'out:db', type: 'converge' },
+  { from: 'interval_id', to: 'out:db', type: 'converge' },
+  ...DERIVED.map((d) => ({ from: d, to: 'out:db', type: 'carry' })),
+  { from: 'out:db', to: 'out:api', type: 'publish' },
 ];
 
-// ─── Helpers ───
-function makePath(x1, y1, x2, y2) {
-  const mx = (x1 + x2) / 2;
-  return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+const REL_WORD = {
+  clean: '清洗标准化', derive: '派生计算', timealign: '时序对齐', match: '匹配判定',
+  converge: '汇入融合', carry: '携带入库', publish: '对外发布',
+};
+const REL_COLORVAR = { match: '--green', converge: '--green', publish: '--orange' };
+function edgeColorVar(edge) { return REL_COLORVAR[edge.type] || NODE_BY_ID[edge.from].v; }
+
+const CAT_LABELS = {
+  标识: '标识', 时间戳: '时间戳', 时间差: '时间差', 压力数据: '压力数据', 匹配状态: '匹配状态',
+  '帧率/检测': '帧率/检测', 体态角度: '体态角度', 身体尺寸: '身体尺寸', 中心位置: '中心位置',
+  关键点: '关键点', 融合: '融合处理', 输出: '输出',
+};
+
+// ─── 同心球壳：外层=源字段 / 中层=派生·融合 / 内核=输出 ───
+const SHELL_R = [168, 96, 24];
+function shellOf(node) {
+  if (node.id.startsWith('out:')) return 2;
+  if (['体态角度', '身体尺寸', '中心位置', '融合', '匹配状态'].includes(node.cat)) return 1;
+  return 0;
 }
 
-function computeLineageChain(selectedId, edges) {
+function computeLayout() {
+  const byShell = [[], [], []];
+  NODES.forEach((n) => byShell[shellOf(n)].push(n));
+  const pos = {};
+  byShell.forEach((arr, s) => {
+    const n = arr.length;
+    arr.forEach((node, i) => {
+      const y = n === 1 ? 0 : 1 - (2 * (i + 0.5)) / n;
+      const r = Math.sqrt(Math.max(0, 1 - y * y));
+      const theta = Math.PI * (1 + Math.sqrt(5)) * i + s * 1.2; // 各层错开角度，减少径向重叠
+      pos[node.id] = new THREE.Vector3(
+        SHELL_R[s] * r * Math.cos(theta),
+        SHELL_R[s] * y,
+        SHELL_R[s] * r * Math.sin(theta)
+      );
+    });
+  });
+  return pos;
+}
+
+function computeLineageChain(selectedId) {
   const upstream = new Set();
   const downstream = new Set();
   let queue = [selectedId];
   let visited = new Set([selectedId]);
   while (queue.length) {
     const current = queue.shift();
-    for (const edge of edges) {
-      if (edge.to === current && !visited.has(edge.from)) {
-        visited.add(edge.from);
-        upstream.add(edge.from);
-        queue.push(edge.from);
-      }
+    for (const edge of EDGES) {
+      if (edge.to === current && !visited.has(edge.from)) { visited.add(edge.from); upstream.add(edge.from); queue.push(edge.from); }
     }
   }
   queue = [selectedId];
   visited = new Set([selectedId]);
   while (queue.length) {
     const current = queue.shift();
-    for (const edge of edges) {
-      if (edge.from === current && !visited.has(edge.to)) {
-        visited.add(edge.to);
-        downstream.add(edge.to);
-        queue.push(edge.to);
-      }
+    for (const edge of EDGES) {
+      if (edge.from === current && !visited.has(edge.to)) { visited.add(edge.to); downstream.add(edge.to); queue.push(edge.to); }
     }
   }
-  return {
-    chain: new Set([selectedId, ...upstream, ...downstream]),
-    upstream,
-    downstream,
-  };
+  return { chain: new Set([selectedId, ...upstream, ...downstream]), upstream, downstream };
 }
 
-const STAGE_LABELS = {
-  source: 'Source',
-  filter: 'Filter',
-  map: 'Map',
-  calc: 'Calc',
-  join: 'Join',
-  output: 'Output',
-};
-
-const PIPELINE_LABELS = {
-  pressure: '足底压力管线',
-  posture: '三维姿态管线',
-  merged: '融合输出',
-};
-
-const TRANSFORM_ICONS = {
-  passthrough: { icon: '→', bg: 'rgba(108,140,255,0.15)', fg: 'var(--accent)' },
-  rename: { icon: '⇄', bg: 'rgba(34,211,238,0.15)', fg: 'var(--cyan)' },
-  derive: { icon: 'ƒ', bg: 'rgba(167,139,250,0.15)', fg: 'var(--accent3)' },
-  merge: { icon: '⨝', bg: 'rgba(52,211,153,0.15)', fg: 'var(--green)' },
-  carry: { icon: '↓', bg: 'rgba(107,112,132,0.15)', fg: 'var(--muted)' },
-  output: { icon: '◉', bg: 'rgba(251,146,60,0.15)', fg: 'var(--orange)' },
-  persist: { icon: 'D', bg: 'rgba(251,146,60,0.15)', fg: 'var(--orange)' },
-  expose: { icon: 'A', bg: 'rgba(251,146,60,0.15)', fg: 'var(--orange)' },
-};
-
-function FlowParticle({ path, color, dur = 2.5, delay = 0, opacity = 0.8 }) {
-  return (
-    <circle r="2.4" fill={color} opacity={opacity}>
-      <animateMotion dur={`${dur}s`} repeatCount="indefinite" begin={`${delay}s`} path={path} />
-    </circle>
-  );
+function baseRadius(node) {
+  if (node.id === 'out:db') return 11;
+  if (node.id === 'out:api') return 9;
+  if (node.id === 'landmarks_json') return 9;
+  if (node.cat === '融合') return 7;
+  if (node.cat === '压力数据' || node.cat === '关键点') return 6.4;
+  return 5.4;
 }
+
+function makeGlowTexture() {
+  const size = 128;
+  const c = document.createElement('canvas');
+  c.width = c.height = size;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+  g.addColorStop(0, 'rgba(255,255,255,1)');
+  g.addColorStop(0.25, 'rgba(255,255,255,0.5)');
+  g.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, size, size);
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
+const easeOut = (t) => 1 - Math.pow(1 - t, 3);
 
 export default function LineageGraph() {
-  const [nodes, setNodes] = useState(INITIAL_NODES);
+  const mountRef = useRef(null);
+  const labelsRef = useRef(null);
+  const apiRef = useRef(null);
+  const selectedRef = useRef(null);
   const [selected, setSelected] = useState(null);
-  const [hoverEdge, setHoverEdge] = useState(null);
-  const dragRef = useRef(null);
-  const movedRef = useRef(false);
 
-  const chain = useMemo(() => (selected ? computeLineageChain(selected, EDGES) : null), [selected]);
+  useEffect(() => {
+    const container = mountRef.current;
+    const labelLayer = labelsRef.current;
+    if (!container || !labelLayer) return;
 
-  const getSvgPoint = useCallback((e) => {
-    const svg = e.currentTarget.closest('svg');
-    const pt = svg.createSVGPoint();
-    pt.x = e.clientX;
-    pt.y = e.clientY;
-    return pt.matrixTransform(svg.getScreenCTM().inverse());
-  }, []);
+    let width = container.clientWidth || 800;
+    let height = container.clientHeight || 520;
 
-  const handlePointerDown = useCallback(
-    (id, e) => {
-      e.stopPropagation();
-      const pt = getSvgPoint(e);
-      dragRef.current = { id, ox: nodes[id].x, oy: nodes[id].y, sx: pt.x, sy: pt.y };
-      movedRef.current = false;
-      e.currentTarget.setPointerCapture(e.pointerId);
-    },
-    [nodes, getSvgPoint]
-  );
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(46, width / height, 1, 4000);
+    camera.position.set(0, 12, 500);
 
-  const handlePointerMove = useCallback(
-    (e) => {
-      if (!dragRef.current) return;
-      const pt = getSvgPoint(e);
-      const { id, ox, oy, sx, sy } = dragRef.current;
-      const dx = pt.x - sx;
-      const dy = pt.y - sy;
-      if (Math.abs(dx) > 3 || Math.abs(dy) > 3) movedRef.current = true;
-      setNodes((prev) => ({
-        ...prev,
-        [id]: { ...prev[id], x: ox + dx, y: oy + dy },
-      }));
-    },
-    [getSvgPoint]
-  );
+    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(width, height);
+    container.appendChild(renderer.domElement);
+    renderer.domElement.style.cursor = 'grab';
 
-  const handlePointerUp = useCallback((id) => {
-    if (dragRef.current && !movedRef.current) {
-      setSelected((prev) => (prev === id ? null : id));
+    const controls = new OrbitControls(camera, renderer.domElement);
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.08;
+    controls.enablePan = false;
+    controls.minDistance = 240;
+    controls.maxDistance = 820;
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.42;
+
+    const colorCache = {};
+    const col = (v) => {
+      if (!colorCache[v]) {
+        const hex = getComputedStyle(document.documentElement).getPropertyValue(v).trim() || '#888888';
+        colorCache[v] = new THREE.Color(hex);
+      }
+      return colorCache[v];
+    };
+
+    const glowTex = makeGlowTexture();
+    const sphereGeo = new THREE.SphereGeometry(1, 28, 28);
+    const layout = computeLayout();
+
+    // 半透明壳层导引球（让"同心分层"结构更直观）
+    const shellMeshes = [];
+    [0, 1].forEach((s) => {
+      const geo = new THREE.SphereGeometry(SHELL_R[s], 32, 24);
+      const mat = new THREE.MeshBasicMaterial({
+        color: col('--border').clone(), transparent: true, opacity: 0.05,
+        wireframe: true, depthWrite: false,
+      });
+      const m = new THREE.Mesh(geo, mat);
+      scene.add(m);
+      shellMeshes.push({ mesh: m, mat });
+    });
+
+    // ── 节点 + DOM 标签 ──
+    const nodeObjs = {};
+    const pickables = [];
+    NODES.forEach((node) => {
+      const finalPos = layout[node.id];
+      const color = col(node.v);
+      const baseR = baseRadius(node);
+
+      const mat = new THREE.MeshBasicMaterial({ color: color.clone(), transparent: true, opacity: 1 });
+      const mesh = new THREE.Mesh(sphereGeo, mat);
+      mesh.scale.setScalar(baseR);
+      mesh.userData.id = node.id;
+      scene.add(mesh);
+      pickables.push(mesh);
+
+      const glowMat = new THREE.SpriteMaterial({
+        map: glowTex, color: color.clone(), transparent: true, opacity: 0.5,
+        depthWrite: false, blending: THREE.AdditiveBlending,
+      });
+      const glow = new THREE.Sprite(glowMat);
+      const glowBase = baseR * 3.4;
+      glow.scale.setScalar(glowBase);
+      scene.add(glow);
+
+      const labelEl = document.createElement('div');
+      labelEl.className = 'l3d-label';
+      labelEl.textContent = node.name;
+      labelEl.style.setProperty('--lc', `var(${node.v})`);
+      labelLayer.appendChild(labelEl);
+
+      nodeObjs[node.id] = { mesh, mat, glow, glowMat, glowBase, baseR, finalPos, labelEl };
+    });
+
+    // ── 边（轻微内凹弧线，体现向核心汇聚） + 流动粒子 ──
+    const edgeObjs = [];
+    const particles = [];
+    const partGeo = new THREE.SphereGeometry(1.3, 10, 10);
+    EDGES.forEach((e, i) => {
+      const a = nodeObjs[e.from].finalPos;
+      const b = nodeObjs[e.to].finalPos;
+      const mid = a.clone().add(b).multiplyScalar(0.5).multiplyScalar(0.86);
+      const curve = new THREE.QuadraticBezierCurve3(a.clone(), mid, b.clone());
+      const thin = e.type === 'carry';
+      const tubeGeo = new THREE.TubeGeometry(curve, 32, thin ? 0.32 : 0.55, 6, false);
+      const cv = edgeColorVar(e);
+      const baseOpacity = thin ? 0.16 : 0.4;
+      const mat = new THREE.MeshBasicMaterial({ color: col(cv).clone(), transparent: true, opacity: 0 });
+      const tube = new THREE.Mesh(tubeGeo, mat);
+      scene.add(tube);
+      edgeObjs.push({ from: e.from, to: e.to, mat, baseOpacity });
+
+      const pMat = new THREE.MeshBasicMaterial({ color: col(cv).clone(), transparent: true, opacity: 0 });
+      const pMesh = new THREE.Mesh(partGeo, pMat);
+      scene.add(pMesh);
+      particles.push({ mesh: pMesh, mat: pMat, curve, offset: (i % 9) / 9, cv });
+    });
+
+    // ── 选中高亮 ──
+    let currentChain = null;
+    function applySelection(selId) {
+      currentChain = selId ? computeLineageChain(selId).chain : null;
+      const ch = currentChain;
+      NODES.forEach((node) => {
+        const o = nodeObjs[node.id];
+        const inChain = !ch || ch.has(node.id);
+        const isSel = selId === node.id;
+        o.mat.opacity = inChain ? 1 : 0.07;
+        o.glowMat.opacity = inChain ? (isSel ? 1 : 0.5) : 0.02;
+        o.mesh.scale.setScalar(isSel ? o.baseR * 1.6 : o.baseR);
+        o.glow.scale.setScalar(isSel ? o.glowBase * 1.5 : o.glowBase);
+      });
+      edgeObjs.forEach((eo) => {
+        const inChain = !ch || (ch.has(eo.from) && ch.has(eo.to));
+        eo.mat.opacity = ch ? (inChain ? 0.9 : 0.02) : eo.baseOpacity;
+      });
+      shellMeshes.forEach((sm) => (sm.mat.opacity = ch ? 0.02 : 0.05));
     }
-    dragRef.current = null;
+
+    // ── 悬停（仅放大球/光晕） ──
+    let hoverId = null;
+    function setHover(id) {
+      if (hoverId === id) return;
+      if (!selectedRef.current && hoverId && nodeObjs[hoverId]) {
+        const o = nodeObjs[hoverId];
+        o.glowMat.opacity = 0.5;
+        o.mesh.scale.setScalar(o.baseR);
+      }
+      hoverId = id;
+      if (!selectedRef.current && id && nodeObjs[id]) {
+        const o = nodeObjs[id];
+        o.glowMat.opacity = 0.85;
+        o.mesh.scale.setScalar(o.baseR * 1.22);
+      }
+    }
+
+    // ── 拾取 ──
+    const raycaster = new THREE.Raycaster();
+    const pointer = new THREE.Vector2();
+    let downX = 0, downY = 0;
+    function pickAt(clientX, clientY) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      const hits = raycaster.intersectObjects(pickables, false);
+      return hits.length ? hits[0].object.userData.id : null;
+    }
+    function onPointerMove(ev) {
+      const id = pickAt(ev.clientX, ev.clientY);
+      renderer.domElement.style.cursor = id ? 'pointer' : 'grab';
+      setHover(id);
+    }
+    function onPointerDown(ev) { downX = ev.clientX; downY = ev.clientY; }
+    function onPointerUp(ev) {
+      if (Math.hypot(ev.clientX - downX, ev.clientY - downY) > 5) return;
+      const id = pickAt(ev.clientX, ev.clientY);
+      setSelected((prev) => (id ? (prev === id ? null : id) : null));
+    }
+    const dom = renderer.domElement;
+    dom.addEventListener('pointermove', onPointerMove);
+    dom.addEventListener('pointerdown', onPointerDown);
+    dom.addEventListener('pointerup', onPointerUp);
+
+    // ── 主题刷新 ──
+    function refreshColors() {
+      Object.keys(colorCache).forEach((k) => delete colorCache[k]);
+      NODES.forEach((node) => {
+        const o = nodeObjs[node.id];
+        const c = col(node.v);
+        o.mat.color.copy(c);
+        o.glowMat.color.copy(c);
+      });
+      edgeObjs.forEach((eo, i) => eo.mat.color.copy(col(edgeColorVar(EDGES[i]))));
+      particles.forEach((p) => p.mat.color.copy(col(p.cv)));
+      shellMeshes.forEach((sm) => sm.mat.color.copy(col('--border')));
+    }
+    const themeObs = new MutationObserver(refreshColors);
+    themeObs.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+    // ── 渲染循环（含入场散开 + DOM 标签投影） ──
+    const clock = new THREE.Clock();
+    const INTRO = 1.6;
+    const tmp = new THREE.Vector3();
+    let raf;
+    function animate() {
+      raf = requestAnimationFrame(animate);
+      const t = clock.getElapsedTime();
+      const introT = Math.min(1, t / INTRO);
+      const spread = 0.12 + 0.88 * easeOut(introT);
+
+      NODES.forEach((node) => {
+        const o = nodeObjs[node.id];
+        o.mesh.position.copy(o.finalPos).multiplyScalar(spread);
+        o.glow.position.copy(o.mesh.position);
+      });
+      shellMeshes.forEach((sm) => sm.mesh.scale.setScalar(spread));
+
+      const edgeFade = Math.max(0, (introT - 0.5) / 0.5);
+      if (introT < 1) {
+        edgeObjs.forEach((eo) => (eo.mat.opacity = eo.baseOpacity * edgeFade));
+        particles.forEach((p) => (p.mat.opacity = 0));
+      } else if (!selectedRef.current) {
+        particles.forEach((p) => {
+          const tt = (t * 0.14 + p.offset) % 1;
+          p.mesh.position.copy(p.curve.getPoint(tt));
+          p.mesh.material.opacity = 0.35 + 0.5 * Math.sin(tt * Math.PI);
+        });
+      } else {
+        particles.forEach((p) => (p.mat.opacity = 0));
+      }
+
+      // DOM 标签：投影到屏幕；未选中常显+深度淡化，选中只显示链路
+      const sel = selectedRef.current;
+      const camDist = camera.position.length();
+      const near = camDist - SHELL_R[0];
+      const span = SHELL_R[0] * 2.2;
+      NODES.forEach((node) => {
+        const o = nodeObjs[node.id];
+        const el = o.labelEl;
+        tmp.copy(o.mesh.position);
+        tmp.y += o.baseR + 5;
+        tmp.project(camera);
+        if (tmp.z > 1) { el.style.display = 'none'; return; }
+        const x = (tmp.x * 0.5 + 0.5) * width;
+        const y = (-tmp.y * 0.5 + 0.5) * height;
+        let op, scale = 1, hl = false;
+        if (sel) {
+          if (!currentChain || !currentChain.has(node.id)) { el.style.display = 'none'; return; }
+          op = 1; hl = node.id === sel; scale = hl ? 1.25 : 1;
+        } else {
+          const d = o.mesh.position.distanceTo(camera.position);
+          const tt = Math.max(0, Math.min(1, (d - near) / span));
+          op = (1 - tt * 0.8) * introT;
+          if (node.id === hoverId) { op = 1; scale = 1.3; hl = true; }
+        }
+        el.style.display = '';
+        el.style.opacity = op.toFixed(3);
+        el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%) scale(${scale})`;
+        el.classList.toggle('hl', hl);
+        el.style.zIndex = hl ? '6' : '';
+      });
+
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    const ro = new ResizeObserver(() => {
+      width = container.clientWidth || width;
+      height = container.clientHeight || height;
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+    });
+    ro.observe(container);
+
+    apiRef.current = { applySelection };
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      themeObs.disconnect();
+      dom.removeEventListener('pointermove', onPointerMove);
+      dom.removeEventListener('pointerdown', onPointerDown);
+      dom.removeEventListener('pointerup', onPointerUp);
+      controls.dispose();
+      sphereGeo.dispose();
+      partGeo.dispose();
+      glowTex.dispose();
+      scene.traverse((obj) => {
+        if (obj.geometry) obj.geometry.dispose();
+        if (obj.material) {
+          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
+          mats.forEach((m) => { if (m.map) m.map.dispose(); m.dispose(); });
+        }
+      });
+      renderer.dispose();
+      if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
+      labelLayer.replaceChildren();
+      apiRef.current = null;
+    };
   }, []);
 
-  const handleBgClick = useCallback(() => {
-    setSelected(null);
-  }, []);
+  useEffect(() => {
+    selectedRef.current = selected;
+    apiRef.current?.applySelection(selected);
+  }, [selected]);
+
+  const node = selected ? NODE_BY_ID[selected] : null;
+  const inEdges = selected ? EDGES.filter((e) => e.to === selected) : [];
+  const outEdges = selected ? EDGES.filter((e) => e.from === selected) : [];
+  const isolated = selected && inEdges.length === 0 && outEdges.length === 0;
 
   return (
-    <div className="lineage-section">
-      <div className="lineage-svg">
-        <svg width={SVG_W} height={SVG_H} viewBox={`0 0 ${SVG_W} ${SVG_H}`} onClick={handleBgClick}>
-          <defs>
-            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="var(--divider)" strokeWidth="0.5" />
-            </pattern>
-            <filter id="glow">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-            <filter id="glow-strong">
-              <feGaussianBlur stdDeviation="5" result="blur" />
-              <feMerge>
-                <feMergeNode in="blur" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-            <linearGradient id="stage-band-grad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--text)" stopOpacity="0.04" />
-              <stop offset="100%" stopColor="var(--text)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-
-          {/* Background */}
-          <rect width={SVG_W} height={SVG_H} fill="url(#grid)" rx="8" />
-
-          {/* Stage column background bands */}
-          {STAGES.map((stage, i) => {
-            const nextX = i < STAGES.length - 1 ? STAGES[i + 1].x : SVG_W;
-            const bandW = nextX - stage.x;
-            const stageDelay = 0.5 + i * 0.4;
-            return (
-              <g
-                key={stage.id}
-                style={{
-                  opacity: 0,
-                  animation: `nodeFadeIn 0.6s ease ${stageDelay}s both`,
-                }}
-              >
-                <rect
-                  x={stage.x - 10}
-                  y={38}
-                  width={bandW + 10}
-                  height={SVG_H - 48}
-                  fill={stage.color}
-                  opacity="0.02"
-                  rx="4"
-                />
-                {/* Stage header bar */}
-                <rect
-                  x={stage.x - 10}
-                  y={6}
-                  width={bandW + 10}
-                  height={26}
-                  fill={stage.color}
-                  opacity="0.1"
-                  rx="4"
-                />
-                <line
-                  x1={stage.x - 10}
-                  y1={32}
-                  x2={stage.x - 10 + bandW + 10}
-                  y2={32}
-                  stroke={stage.color}
-                  strokeWidth="1"
-                  opacity="0.2"
-                />
-                <text
-                  x={stage.x - 10 + (bandW + 10) / 2}
-                  y={22}
-                  textAnchor="middle"
-                  fill={stage.color}
-                  fontSize="11"
-                  fontWeight="700"
-                  letterSpacing="2"
-                >
-                  {stage.label}
-                </text>
-                {/* Stage record count badge */}
-                {stage.id !== 'source' && (
-                  <text
-                    x={stage.x - 10 + (bandW + 10) / 2}
-                    y={SVG_H - 10}
-                    textAnchor="middle"
-                    fill={stage.color}
-                    fontSize="9"
-                    opacity="0.4"
-                    fontFamily="'Cascadia Code', monospace"
-                  >
-                    {stage.id === 'filter' && '10752→9238 / 8144→6947'}
-                    {stage.id === 'map' && '9238→9107 / 6947→6835'}
-                    {stage.id === 'calc' && '6 + 6 = 12 fields'}
-                    {stage.id === 'join' && '9107+6835→6218 (68.3%)'}
-                    {stage.id === 'output' && '6218 records'}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-
-          {/* Stage column dividers */}
-          {STAGES.slice(0, -1).map((stage, i) => {
-            return (
-              <line
-                key={stage.id}
-                x1={(stage.x + STAGES[i + 1].x) / 2 + (stage.w + STAGES[i + 1].w) / 4}
-                y1={38}
-                x2={(stage.x + STAGES[i + 1].x) / 2 + (stage.w + STAGES[i + 1].w) / 4}
-                y2={SVG_H - 20}
-                stroke="var(--divider)"
-                strokeWidth="1"
-                strokeDasharray="4 4"
-              />
-            );
-          })}
-
-          {/* Pipeline group labels */}
-          <g>
-            <rect x={4} y={75} width={4} height={232} rx="2" fill={C.accent} opacity="0.6" />
-            <text
-              x={14}
-              y={160}
-              fill={C.accent}
-              fontSize="10"
-              fontWeight="700"
-              letterSpacing="1"
-              opacity="0.5"
-              transform="rotate(-90, 14, 160)"
-            >
-              PRESSURE
-            </text>
-          </g>
-          <g>
-            <rect x={4} y={385} width={4} height={232} rx="2" fill={C.accent2} opacity="0.6" />
-            <text
-              x={14}
-              y={470}
-              fill={C.accent2}
-              fontSize="10"
-              fontWeight="700"
-              letterSpacing="1"
-              opacity="0.5"
-              transform="rotate(-90, 14, 470)"
-            >
-              POSTURE
-            </text>
-          </g>
-          <g>
-            <rect x={986} y={170} width={4} height={227} rx="2" fill={C.green} opacity="0.6" />
-            <text
-              x={996}
-              y={280}
-              fill={C.green}
-              fontSize="10"
-              fontWeight="700"
-              letterSpacing="1"
-              opacity="0.5"
-              transform="rotate(-90, 996, 280)"
-            >
-              MERGED
-            </text>
-          </g>
-
-          {/* Pipeline group separator line */}
-          <line
-            x1={80}
-            y1={335}
-            x2={920}
-            y2={335}
-            stroke="var(--divider)"
-            strokeWidth="1.5"
-            strokeDasharray="6 4"
-          />
-
-          {/* Edges */}
-          {EDGES.map((edge, i) => {
-            const from = nodes[edge.from];
-            const to = nodes[edge.to];
-            if (!from || !to) return null;
-            const x1 = from.x + from.w;
-            const y1 = from.y + from.h / 2;
-            const x2 = to.x;
-            const y2 = to.y + to.h / 2;
-            const path = makePath(x1, y1, x2, y2);
-            const isHovered = hoverEdge === i;
-
-            // Lineage chain highlighting
-            let edgeOpacity = 0.3;
-            let edgeWidth = 1.8;
-            if (chain) {
-              const fromInChain = chain.chain.has(edge.from);
-              const toInChain = chain.chain.has(edge.to);
-              if (fromInChain && toInChain) {
-                edgeOpacity = 0.95;
-                edgeWidth = 2.5;
-              } else if (fromInChain || toInChain) {
-                edgeOpacity = 0.4;
-              } else {
-                edgeOpacity = 0.08;
-              }
-            } else if (isHovered) {
-              edgeOpacity = 0.95;
-              edgeWidth = 2.5;
-            }
-
-            const edgeDelay = 3.0 + i * 0.15;
-
-            return (
-              <g
-                key={i}
-                style={{
-                  opacity: 0,
-                  animation: `nodeFadeIn 0.5s ease ${edgeDelay}s both`,
-                }}
-              >
-                <path
-                  d={path}
-                  fill="none"
-                  stroke={edge.color}
-                  strokeWidth={isHovered ? 3 : edgeWidth}
-                  strokeOpacity={edgeOpacity}
-                  strokeDasharray={edge.dashed ? '6 4' : undefined}
-                  className="lineage-edge"
-                  onMouseEnter={() => setHoverEdge(i)}
-                  onMouseLeave={() => setHoverEdge(null)}
-                  style={{
-                    cursor: 'pointer',
-                    transition: 'stroke-opacity 0.2s, stroke-width 0.2s',
-                  }}
-                />
-                <FlowParticle
-                  path={path}
-                  color={edge.color}
-                  delay={0}
-                  opacity={Math.max(edgeOpacity, 0.35)}
-                />
-                <FlowParticle
-                  path={path}
-                  color={edge.color}
-                  delay={1.2}
-                  opacity={Math.max(edgeOpacity, 0.35)}
-                />
-                {isHovered && (
-                  <text
-                    x={(x1 + x2) / 2}
-                    y={(y1 + y2) / 2 - 10}
-                    textAnchor="middle"
-                    fill={edge.color}
-                    fontSize="10"
-                    fontWeight="600"
-                    className="edge-label"
-                  >
-                    {edge.label}
-                  </text>
-                )}
-              </g>
-            );
-          })}
-
-          {/* Field nodes */}
-          {Object.entries(nodes).map(([id, node], nodeIdx) => {
-            const isSelected = selected === id;
-            const isInChain = chain?.chain.has(id);
-            const dimmed = chain && !isInChain && !isSelected;
-            const staggerDelay = 1.5 + nodeIdx * 0.12;
-
-            return (
-              <g
-                key={id}
-                className={`field-node${isSelected ? ' selected' : ''}${dimmed ? ' dimmed' : ''}${isInChain && !isSelected ? ' in-chain' : ''}`}
-                onPointerDown={(e) => handlePointerDown(id, e)}
-                onPointerMove={handlePointerMove}
-                onPointerUp={() => handlePointerUp(id)}
-                style={{
-                  cursor: 'grab',
-                  opacity: 0,
-                  animation: `nodeFadeIn 0.6s ease ${staggerDelay}s both`,
-                }}
-              >
-                {/* Hit area */}
-                <rect
-                  x={node.x - 4}
-                  y={node.y - 4}
-                  width={node.w + 8}
-                  height={node.h + 8}
-                  fill="transparent"
-                />
-                {/* Selection glow */}
-                {isSelected && (
-                  <rect
-                    x={node.x - 4}
-                    y={node.y - 4}
-                    width={node.w + 8}
-                    height={node.h + 8}
-                    rx={8}
-                    fill="none"
-                    stroke={node.color}
-                    strokeWidth="2"
-                    opacity="0.5"
-                    filter="url(#glow-strong)"
-                  />
-                )}
-                {/* Card shadow */}
-                <rect
-                  x={node.x + 1}
-                  y={node.y + 1}
-                  width={node.w}
-                  height={node.h}
-                  rx="5"
-                  fill="var(--shadow)"
-                />
-                {/* Card */}
-                <rect
-                  x={node.x}
-                  y={node.y}
-                  width={node.w}
-                  height={node.h}
-                  rx="5"
-                  fill={isSelected ? 'var(--border)' : 'var(--card)'}
-                  stroke={node.color}
-                  strokeWidth={isSelected ? 2 : 1}
-                  style={{ transition: 'stroke-width 0.15s' }}
-                />
-                {/* Left accent bar */}
-                <rect
-                  x={node.x}
-                  y={node.y}
-                  width="4"
-                  height={node.h}
-                  rx="2"
-                  fill={node.color}
-                  opacity={node.dropped ? 0.25 : 0.85}
-                />
-                {/* Field name */}
-                <text
-                  x={node.x + 12}
-                  y={node.y + node.h / 2 + 1}
-                  dominantBaseline="central"
-                  fill={node.dropped ? 'var(--muted)' : 'var(--text)'}
-                  fontSize="11"
-                  fontWeight="600"
-                  fontFamily="'Cascadia Code', 'Fira Code', monospace"
-                  style={node.dropped ? { textDecoration: 'line-through' } : undefined}
-                >
-                  {node.name}
-                </text>
-                {/* Type badge */}
-                {!node.dropped && (
-                  <text
-                    x={node.x + node.w - 8}
-                    y={node.y + node.h / 2 + 1}
-                    textAnchor="end"
-                    dominantBaseline="central"
-                    fontSize="9"
-                    fontFamily="'Cascadia Code', 'Fira Code', monospace"
-                    fill="var(--muted)"
-                    opacity="0.7"
-                  >
-                    {node.type}
-                  </text>
-                )}
-                {/* Dropped X marker */}
-                {node.dropped && (
-                  <text
-                    x={node.x + node.w - 8}
-                    y={node.y + node.h / 2 + 1}
-                    textAnchor="end"
-                    dominantBaseline="central"
-                    className="field-dropped-x"
-                  >
-                    ✕
-                  </text>
-                )}
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-
-      {/* Detail Panel */}
-      {selected && fieldDetails[selected] && (
-        <div className="lineage-field-detail">
-          <div className="lineage-field-detail-header">
-            <h4>{fieldDetails[selected].title}</h4>
-            <span
-              className="field-type-label"
-              style={{
-                background: `${nodes[selected]?.color || C.accent}18`,
-                color: nodes[selected]?.color || C.accent,
-              }}
-            >
-              {fieldDetails[selected].fieldType}
-            </span>
-            <button className="detail-close" onClick={() => setSelected(null)}>
-              ×
-            </button>
+    <div className={`lineage-section lineage-graph-3d${selected ? ' has-detail' : ''}`}>
+      <div className="lineage-3d-stage">
+        <div className="lineage-3d" ref={mountRef}>
+          <div className="l3d-labels" ref={labelsRef} />
+          <div className="lineage-3d-hint">拖拽旋转 · 滚轮缩放 · 点击节点查看血缘关系</div>
+          <div className="lineage-3d-legend">
+            <span><i style={{ background: 'var(--accent)' }} />足底压力</span>
+            <span><i style={{ background: 'var(--cyan)' }} />姿态/体态</span>
+            <span><i style={{ background: 'var(--green)' }} />融合</span>
+            <span><i style={{ background: 'var(--orange)' }} />输出</span>
+            <span><i style={{ background: 'var(--muted)' }} />标识/质量</span>
           </div>
-          <div className="lineage-field-detail-meta">
-            <span>
-              Stage:{' '}
-              <strong>
-                {STAGE_LABELS[fieldDetails[selected].stage] || fieldDetails[selected].stage}
-              </strong>
-            </span>
-            <span>
-              Pipeline:{' '}
-              <strong>
-                {PIPELINE_LABELS[fieldDetails[selected].pipeline] ||
-                  fieldDetails[selected].pipeline}
-              </strong>
-            </span>
+          <div className="lineage-3d-shellhint">
+            <span>外层 源字段</span><span>中层 派生·融合</span><span>内核 数据集·API</span>
           </div>
-          <div
-            className="lineage-field-detail-body"
-            dangerouslySetInnerHTML={{
-              __html: fieldDetails[selected].body.replace(/<\/?p>/g, ''),
-            }}
-          />
+        </div>
 
-          {/* Transform block */}
-          {fieldDetails[selected].transform &&
-            (() => {
-              const t = fieldDetails[selected].transform;
-              const ti = TRANSFORM_ICONS[t.type] || TRANSFORM_ICONS.carry;
-              return (
-                <div className="lineage-transform-block">
-                  <span
-                    className="lineage-transform-icon"
-                    style={{ background: ti.bg, color: ti.fg }}
-                  >
-                    {ti.icon}
-                  </span>
-                  <div className="lineage-transform-content">
-                    <div className="lineage-transform-label">
-                      {t.type === 'rename' && `${t.from} → ${t.to}`}
-                      {t.type === 'derive' && t.formula}
-                      {t.type === 'passthrough' && `Filter: ${t.rule}`}
-                      {t.type === 'merge' && (t.rule || `Merge: ${t.joinKey}, ${t.tolerance}`)}
-                      {t.type === 'carry' && `Carry from ${t.from}`}
-                      {t.type === 'persist' && `Persist: ${t.mode}, batch ${t.batchSize}`}
-                      {t.type === 'expose' && `${t.method} ${t.path}`}
-                    </div>
-                    <div className="lineage-transform-detail">
-                      {t.type}
-                      {t.unit && ` · ${t.unit}`}
-                      {t.precision && ` · precision ${t.precision}`}
-                      {t.retention && ` · retention ${t.retention}`}
-                    </div>
-                  </div>
+        <div className="lineage-3d-panel">
+          {node && (
+            <div className="lineage-3d-panel-inner">
+              <div className="l3d-detail-header">
+                <div className="l3d-detail-titles">
+                  <h4>{node.cn}</h4>
+                  <code>{node.name}</code>
                 </div>
-              );
-            })()}
-
-          {/* Lineage chain */}
-          {chain && (chain.upstream.size > 0 || chain.downstream.size > 0) && (
-            <div className="lineage-chain-section">
-              {chain.upstream.size > 0 && (
-                <>
-                  <h5>Upstream</h5>
-                  <div className="lineage-chain-list">
-                    {[...chain.upstream].map((uid) => (
-                      <span
-                        key={uid}
-                        className="lineage-chain-tag upstream"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelected(uid);
-                        }}
-                      >
-                        {nodes[uid]?.name || uid}
-                      </span>
+                <button className="detail-close" onClick={() => setSelected(null)}>×</button>
+              </div>
+              <div className="l3d-detail-badges">
+                <span className="l3d-badge" style={{ background: `var(${node.v})18`, color: `var(${node.v})` }}>
+                  {CAT_LABELS[node.cat] || node.cat}
+                </span>
+                <span className="l3d-badge l3d-badge-type">{node.type}</span>
+              </div>
+              <p className="l3d-detail-desc">{node.desc}</p>
+              <div className="l3d-rel">
+                <h5>血缘关系</h5>
+                {isolated && <div className="l3d-rel-empty">独立字段 · 暂无血缘关联（仅随记录保留于数据集）</div>}
+                {inEdges.length > 0 && (
+                  <div className="l3d-rel-group">
+                    <div className="l3d-rel-dir">上游来源</div>
+                    {inEdges.map((e) => (
+                      <button key={e.from} className="l3d-rel-row" onClick={() => setSelected(e.from)}>
+                        <span className="l3d-rel-name">{NODE_BY_ID[e.from].cn}</span>
+                        <span className="l3d-rel-arrow">—{REL_WORD[e.type]}→</span>
+                        <span className="l3d-rel-self">本字段</span>
+                      </button>
                     ))}
                   </div>
-                </>
-              )}
-              {chain.downstream.size > 0 && (
-                <>
-                  <h5 style={{ marginTop: chain.upstream.size > 0 ? 8 : 0 }}>Downstream</h5>
-                  <div className="lineage-chain-list">
-                    {[...chain.downstream].map((did) => (
-                      <span
-                        key={did}
-                        className="lineage-chain-tag downstream"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelected(did);
-                        }}
-                      >
-                        {nodes[did]?.name || did}
-                      </span>
+                )}
+                {outEdges.length > 0 && (
+                  <div className="l3d-rel-group">
+                    <div className="l3d-rel-dir">下游去向</div>
+                    {outEdges.map((e) => (
+                      <button key={e.to} className="l3d-rel-row" onClick={() => setSelected(e.to)}>
+                        <span className="l3d-rel-self">本字段</span>
+                        <span className="l3d-rel-arrow">—{REL_WORD[e.type]}→</span>
+                        <span className="l3d-rel-name">{NODE_BY_ID[e.to].cn}</span>
+                      </button>
                     ))}
                   </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Code block */}
-          {fieldDetails[selected].code && (
-            <div style={{ padding: '8px 16px 12px' }}>
-              <pre
-                style={{
-                  margin: 0,
-                  padding: '10px 14px',
-                  background: 'var(--card)',
-                  border: '1px solid var(--border)',
-                  borderRadius: 6,
-                  fontSize: 11,
-                  lineHeight: 1.6,
-                  color: 'var(--text)',
-                  overflow: 'auto',
-                  fontFamily: "'Cascadia Code', 'Fira Code', monospace",
-                }}
-                dangerouslySetInnerHTML={{ __html: fieldDetails[selected].code }}
-              />
+                )}
+              </div>
             </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

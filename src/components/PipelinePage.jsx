@@ -32,7 +32,7 @@ export default function PipelinePage({ onBack }) {
       <DetailPanel activeId={activeId} onClose={() => setActiveId(null)} />
 
       <div className={`pipe-reveal ${phase >= 2 ? 'visible' : ''}`}>
-        <SectionTitle color="var(--accent3)" hint="字段级来源与去向追踪 · 9 衍生字段 · 6 阶段">
+        <SectionTitle color="var(--accent3)" hint="3D 全字段级血缘 · 28 源字段 · 14 派生指标 · 点击节点看关系">
           全链路数据血缘图谱
         </SectionTitle>
       </div>

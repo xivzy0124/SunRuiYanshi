@@ -769,15 +769,15 @@ export const processDetails = {
     ],
   },
   'pressure-filter': {
-    title: '足底压力 — 数据过滤',
-    body: '<p>执行<strong>多维数据质量校验</strong>：剔除无效帧（valid_frame != true）、空值处理（sensor_values 为 null / NaN）、数组完整性校验（长度必须为 18）、异常值检测（传感器读数超出 0–4096 ADC 量程）。10,752 条 → 9,238 条，剔除 1,514 条脏数据（14.1%）。</p>',
+    title: '足底压力 — 数据清洗',
+    body: '<p>一体化执行<strong>多维数据质量清洗</strong>：剔除无效帧（valid_frame != true）、空值处理（sensor_values 为 null / NaN）、数组完整性校验（长度必须为 18）、异常值检测（传感器读数超出 0–4096 ADC 量程），并完成<strong>时间戳去重</strong>（重复帧合并）与<strong>缺失值填补、噪声平滑</strong>。10,752 条 → 9,120 条，剔除 1,632 条脏数据（15.2%）。</p>',
     blocks: [
       {
         type: 'filter',
         icon: 'F',
-        name: '数据过滤控件',
-        desc: '无效帧 / 空值处理 / 异常值检测',
-        code: `<span class="cm">// 足底压力 - 数据过滤（多维校验）</span>
+        name: '数据清洗控件',
+        desc: '无效帧 / 空值 / 异常值 / 去重 / 噪声平滑',
+        code: `<span class="cm">// 足底压力 - 数据清洗（多维校验 + 去重 + 平滑）</span>
 {
   <span class="str">"source"</span>: <span class="str">"pressure"</span>,
   <span class="str">"input_count"</span>: <span class="num">10752</span>,
@@ -787,24 +787,26 @@ export const processDetails = {
     { <span class="str">"field"</span>: <span class="str">"sensor_values"</span>, <span class="str">"op"</span>: <span class="str">"len"</span>, <span class="str">"value"</span>: <span class="num">18</span>, <span class="str">"desc"</span>: <span class="str">"数组完整性校验"</span> },
     { <span class="str">"field"</span>: <span class="str">"sensor_values[*]"</span>, <span class="str">"op"</span>: <span class="str">"range"</span>, <span class="str">"min"</span>: <span class="num">0</span>, <span class="str">"max"</span>: <span class="num">4096</span>, <span class="str">"desc"</span>: <span class="str">"异常值检测（量程越界）"</span> }
   ],
-  <span class="str">"null_strategy"</span>: <span class="str">"drop_row"</span>,
+  <span class="str">"null_strategy"</span>: <span class="str">"impute_then_drop"</span>,
   <span class="str">"anomaly_strategy"</span>: <span class="str">"drop_row"</span>,
-  <span class="str">"output_count"</span>: <span class="num">9238</span>,
-  <span class="str">"action"</span>: <span class="str">"drop_invalid"</span>
+  <span class="str">"dedup"</span>: <span class="str">"merge_by_timestamp"</span>,
+  <span class="str">"smooth"</span>: <span class="str">"moving_average"</span>,
+  <span class="str">"output_count"</span>: <span class="num">9120</span>,
+  <span class="str">"action"</span>: <span class="str">"clean_pipeline"</span>
 }`,
       },
     ],
   },
   'pressure-map': {
-    title: '足底压力 — 字段映射转换',
-    body: '<p>统一字段格式，规整参数，<strong>剔除冗余字段</strong>，实现数据结构化标准化。映射阶段额外执行<strong>重复时间戳合并</strong>（同一毫秒内多帧传感器值取均值），9,238 条 → 9,107 条。</p>',
+    title: '足底压力 — 字段标准化',
+    body: '<p>统一字段格式与命名，规整参数，<strong>剔除冗余字段</strong>，并按 Z-Score / Min-Max 完成数值归一化，实现数据结构化标准化。9,120 条 → 9,107 条。</p>',
     blocks: [
       {
         type: 'transform',
         icon: 'T',
-        name: '字段映射转换控件',
-        desc: '统一字段格式 / 重复帧合并',
-        code: `<span class="cm">// 足底压力 - 字段映射</span>
+        name: '字段标准化控件',
+        desc: '字段映射 / 格式归一 / Z-Score 标准化',
+        code: `<span class="cm">// 足底压力 - 字段标准化</span>
 {
   <span class="str">"mapping"</span>: {
     <span class="str">"timestamp_ms"</span>: <span class="str">"ts"</span>,
@@ -892,15 +894,15 @@ export const processDetails = {
     ],
   },
   'posture-filter': {
-    title: '三维姿态 — 数据过滤',
-    body: '<p>执行<strong>多维数据质量校验</strong>：空值处理（landmarks 为 null 帧）、关键点完整性校验（33 点齐全）、置信度过滤（全部关键点 visibility >= 0.85）、异常坐标检测（x/y/z 超出 [-1, 2] 归一化范围）。8,144 条 → 6,947 条，剔除 1,197 条低质量帧（14.7%）。</p>',
+    title: '三维姿态 — 数据清洗',
+    body: '<p>一体化执行<strong>多维数据质量清洗</strong>：空值处理（landmarks 为 null 帧）、关键点完整性校验（33 点齐全）、置信度过滤（全部关键点 visibility >= 0.85）、异常坐标检测（x/y/z 超出 [-1, 2] 归一化范围），并完成<strong>重复帧去重</strong>与<strong>卡尔曼滤波平滑</strong>。8,144 条 → 6,892 条，剔除 1,252 条低质量帧（15.4%）。</p>',
     blocks: [
       {
         type: 'filter',
         icon: 'F',
-        name: '数据过滤控件',
-        desc: '置信度 / 空值处理 / 异常坐标检测',
-        code: `<span class="cm">// 三维姿态 - 数据过滤（多维校验）</span>
+        name: '数据清洗控件',
+        desc: '置信度 / 空值 / 异常坐标 / 去重 / 卡尔曼平滑',
+        code: `<span class="cm">// 三维姿态 - 数据清洗（多维校验 + 去重 + 平滑）</span>
 {
   <span class="str">"source"</span>: <span class="str">"posture"</span>,
   <span class="str">"input_count"</span>: <span class="num">8144</span>,
@@ -914,22 +916,24 @@ export const processDetails = {
   ],
   <span class="str">"null_strategy"</span>: <span class="str">"drop_row"</span>,
   <span class="str">"anomaly_strategy"</span>: <span class="str">"drop_row"</span>,
-  <span class="str">"output_count"</span>: <span class="num">6947</span>,
-  <span class="str">"action"</span>: <span class="str">"drop_low_quality"</span>
+  <span class="str">"dedup"</span>: <span class="str">"merge_duplicate_frames"</span>,
+  <span class="str">"smooth"</span>: <span class="str">"kalman_filter"</span>,
+  <span class="str">"output_count"</span>: <span class="num">6892</span>,
+  <span class="str">"action"</span>: <span class="str">"clean_pipeline"</span>
 }`,
       },
     ],
   },
   'posture-map': {
-    title: '三维姿态 — 字段映射转换',
-    body: '<p>统一字段格式，<strong>规整坐标参数</strong>，剔除模型推理冗余信息。映射阶段额外执行<strong>帧率规整</strong>（统一到 30fps 基准）和<strong>重复时间戳合并</strong>，6,947 条 → 6,835 条。</p>',
+    title: '三维姿态 — 字段标准化',
+    body: '<p>统一字段格式与命名，<strong>规整坐标参数</strong>，剔除模型推理冗余信息，并完成<strong>坐标系转换</strong>（局部→全局）、<strong>骨架归一化与尺度对齐</strong>，6,892 条 → 6,835 条。</p>',
     blocks: [
       {
         type: 'transform',
         icon: 'T',
-        name: '字段映射转换控件',
-        desc: '规整坐标参数 / 帧率规整',
-        code: `<span class="cm">// 三维姿态 - 字段映射</span>
+        name: '字段标准化控件',
+        desc: '坐标系转换 / 骨架归一 / 尺度对齐',
+        code: `<span class="cm">// 三维姿态 - 字段标准化</span>
 {
   <span class="str">"mapping"</span>: {
     <span class="str">"frame_timestamp"</span>: <span class="str">"ts"</span>,

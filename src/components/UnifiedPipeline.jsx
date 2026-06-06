@@ -1,20 +1,11 @@
 import PipelineNode from './PipelineNode';
 import { pipelineRows, mergedNodes } from '../data/pipelineData';
 
-// 阶段标签：顺序与每条流的节点列一一对应（共 12 列）
+// 阶段标签：顺序与每条流的节点列一一对应（共 3 列，对齐稿子治理流程）
 const STAGE_VARS = [
   { id: 'source', label: 'INPUT', cssVar: '--accent' },
-  { id: 'parse', label: 'PARSE', cssVar: '--accent3' },
-  { id: 'validate', label: 'VALIDATE', cssVar: '--cyan' },
-  { id: 'filter', label: 'FILTER', cssVar: '--purple' },
-  { id: 'dedup', label: 'DEDUP', cssVar: '--pink' },
   { id: 'clean', label: 'CLEAN', cssVar: '--green' },
-  { id: 'map', label: 'MAP', cssVar: '--orange' },
   { id: 'normalize', label: 'NORMALIZE', cssVar: '--accent2' },
-  { id: 'encode', label: 'ENCODE', cssVar: '--red' },
-  { id: 'calc', label: 'CALC', cssVar: '--accent' },
-  { id: 'aggregate', label: 'AGGREGATE', cssVar: '--cyan' },
-  { id: 'quality', label: 'QUALITY', cssVar: '--purple' },
 ];
 
 function getStages() {
