@@ -272,10 +272,11 @@ export default function LineageGraph() {
       const b = nodeObjs[e.to].finalPos;
       const mid = a.clone().add(b).multiplyScalar(0.5).multiplyScalar(0.86);
       const curve = new THREE.QuadraticBezierCurve3(a.clone(), mid, b.clone());
-      const thin = e.type === 'carry';
-      const tubeGeo = new THREE.TubeGeometry(curve, 32, thin ? 0.32 : 0.55, 6, false);
+      // 派生/携带是密集簇（landmarks 扇出、out:db 汇入），默认收起，仅选中相关节点时点亮
+      const dense = e.type === 'derive' || e.type === 'carry';
+      const tubeGeo = new THREE.TubeGeometry(curve, 32, dense ? 0.34 : 0.55, 6, false);
       const cv = edgeColorVar(e);
-      const baseOpacity = thin ? 0.16 : 0.4;
+      const baseOpacity = dense ? 0 : 0.4;
       const mat = new THREE.MeshBasicMaterial({ color: col(cv).clone(), transparent: true, opacity: 0 });
       const tube = new THREE.Mesh(tubeGeo, mat);
       scene.add(tube);
@@ -284,7 +285,7 @@ export default function LineageGraph() {
       const pMat = new THREE.MeshBasicMaterial({ color: col(cv).clone(), transparent: true, opacity: 0 });
       const pMesh = new THREE.Mesh(partGeo, pMat);
       scene.add(pMesh);
-      particles.push({ mesh: pMesh, mat: pMat, curve, offset: (i % 9) / 9, cv });
+      particles.push({ mesh: pMesh, mat: pMat, curve, offset: (i % 9) / 9, cv, dense });
     });
 
     // ── 选中高亮 ──
@@ -393,6 +394,7 @@ export default function LineageGraph() {
         particles.forEach((p) => (p.mat.opacity = 0));
       } else if (!selectedRef.current) {
         particles.forEach((p) => {
+          if (p.dense) { p.mat.opacity = 0; return; } // 密集簇默认不流动
           const tt = (t * 0.14 + p.offset) % 1;
           p.mesh.position.copy(p.curve.getPoint(tt));
           p.mesh.material.opacity = 0.35 + 0.5 * Math.sin(tt * Math.PI);
