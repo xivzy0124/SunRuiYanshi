@@ -40,8 +40,6 @@ const FIELDS = [
   { id: 'head_center_x', name: 'head_center_x', cn: '头部中心X', type: 'float', cat: '中心位置', v: '--cyan', desc: '由关键点计算的头部水平中心位置。' },
   { id: 'shoulder_center_x', name: 'shoulder_center_x', cn: '肩中心X', type: 'float', cat: '中心位置', v: '--cyan', desc: '由关键点计算的肩部水平中心位置。' },
   { id: 'shoulder_span', name: 'shoulder_span', cn: '肩跨度', type: 'float', cat: '中心位置', v: '--cyan', desc: '由关键点计算的肩部水平跨度。' },
-  // 关键点（姿态源数据 / 中心枢纽）
-  { id: 'landmarks_json', name: 'landmarks_json', cn: '人体关键点', type: 'json', cat: '关键点', v: '--cyan', desc: '33 个三维关键点坐标与置信度(JSON)，姿态分析的源数据，派生全部体态角度与身体尺度指标。' },
 ];
 
 const PROC = [
@@ -64,8 +62,6 @@ const DERIVED = [
 const EDGES = [
   { from: 'left_pressures_json', to: 'proc:pressure_data', type: 'clean' },
   { from: 'right_pressures_json', to: 'proc:pressure_data', type: 'clean' },
-  { from: 'landmarks_json', to: 'proc:pose_data', type: 'clean' },
-  ...DERIVED.map((d) => ({ from: 'landmarks_json', to: d, type: 'derive' })),
   { from: 'pose_timestamp', to: 'proc:ts', type: 'timealign' },
   { from: 'left_pressure_timestamp', to: 'proc:ts', type: 'timealign' },
   { from: 'right_pressure_timestamp', to: 'proc:ts', type: 'timealign' },
@@ -146,7 +142,6 @@ function computeLineageChain(selectedId) {
 function baseRadius(node) {
   if (node.id === 'out:db') return 11;
   if (node.id === 'out:api') return 9;
-  if (node.id === 'landmarks_json') return 9;
   if (node.cat === '融合') return 7;
   if (node.cat === '压力数据' || node.cat === '关键点') return 6.4;
   return 5.4;
@@ -260,7 +255,12 @@ export default function LineageGraph() {
       labelEl.style.setProperty('--lc', `var(${node.v})`);
       labelLayer.appendChild(labelEl);
 
-      nodeObjs[node.id] = { mesh, mat, glow, glowMat, glowBase, baseR, finalPos, labelEl };
+      nodeObjs[node.id] = {
+        mesh, mat, glow, glowMat, glowBase, baseR, finalPos, labelEl,
+        // 平滑过渡：current 当前值 → t* 目标值
+        curScale: baseR, curGlow: glowBase,
+        tOp: 1, tGlow: 0.5, tScale: baseR, tGlowScale: glowBase,
+      };
     });
 
     // ── 边（轻微内凹弧线，体现向核心汇聚） + 流动粒子 ──
@@ -288,47 +288,42 @@ export default function LineageGraph() {
       particles.push({ mesh: pMesh, mat: pMat, curve, offset: (i % 9) / 9, cv, dense });
     });
 
-    // ── 选中高亮 ──
+    // ── 高亮目标：选中/悬停只更新"目标值"，由渲染循环平滑插值过渡 ──
     let currentChain = null;
-    function applySelection(selId) {
+    let hoverId = null;
+    function updateTargets() {
+      const selId = selectedRef.current;
       currentChain = selId ? computeLineageChain(selId).chain : null;
       const ch = currentChain;
       NODES.forEach((node) => {
         const o = nodeObjs[node.id];
         const inChain = !ch || ch.has(node.id);
         const isSel = selId === node.id;
-        o.mat.opacity = inChain ? 1 : 0.07;
-        o.glowMat.opacity = inChain ? (isSel ? 1 : 0.5) : 0.02;
-        o.mesh.scale.setScalar(isSel ? o.baseR * 1.6 : o.baseR);
-        o.glow.scale.setScalar(isSel ? o.glowBase * 1.5 : o.glowBase);
+        const isHover = !selId && hoverId === node.id; // 选中态不叠加悬停
+        o.tOp = inChain ? 1 : 0.07;
+        o.tGlow = isSel ? 1 : isHover ? 0.85 : inChain ? 0.5 : 0.02;
+        o.tScale = (isSel ? 1.6 : isHover ? 1.22 : 1) * o.baseR;
+        o.tGlowScale = (isSel ? 1.5 : 1) * o.glowBase;
       });
       edgeObjs.forEach((eo) => {
         const inChain = !ch || (ch.has(eo.from) && ch.has(eo.to));
-        eo.mat.opacity = ch ? (inChain ? 0.9 : 0.02) : eo.baseOpacity;
+        eo.tOp = ch ? (inChain ? 0.9 : 0.02) : eo.baseOpacity;
       });
-      shellMeshes.forEach((sm) => (sm.mat.opacity = ch ? 0.02 : 0.05));
+      shellMeshes.forEach((sm) => (sm.tOp = ch ? 0.02 : 0.05));
     }
-
-    // ── 悬停（仅放大球/光晕） ──
-    let hoverId = null;
+    const applySelection = () => updateTargets();
     function setHover(id) {
       if (hoverId === id) return;
-      if (!selectedRef.current && hoverId && nodeObjs[hoverId]) {
-        const o = nodeObjs[hoverId];
-        o.glowMat.opacity = 0.5;
-        o.mesh.scale.setScalar(o.baseR);
-      }
       hoverId = id;
-      if (!selectedRef.current && id && nodeObjs[id]) {
-        const o = nodeObjs[id];
-        o.glowMat.opacity = 0.85;
-        o.mesh.scale.setScalar(o.baseR * 1.22);
-      }
+      updateTargets();
     }
+    shellMeshes.forEach((sm) => (sm.tOp = 0.05));
+    edgeObjs.forEach((eo) => (eo.tOp = eo.baseOpacity));
 
     // ── 拾取 ──
     const raycaster = new THREE.Raycaster();
     const pointer = new THREE.Vector2();
+    const pickV = new THREE.Vector3();
     let downX = 0, downY = 0;
     function pickAt(clientX, clientY) {
       const rect = renderer.domElement.getBoundingClientRect();
@@ -336,7 +331,22 @@ export default function LineageGraph() {
       pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(pointer, camera);
       const hits = raycaster.intersectObjects(pickables, false);
-      return hits.length ? hits[0].object.userData.id : null;
+      if (hits.length) return hits[0].object.userData.id;
+      // 屏幕就近兜底：射线没命中时，取点击位置 30px 内最靠前的节点
+      const px = clientX - rect.left;
+      const py = clientY - rect.top;
+      let best = null;
+      let bestD = 30;
+      NODES.forEach((node) => {
+        const o = nodeObjs[node.id];
+        pickV.copy(o.mesh.position).project(camera);
+        if (pickV.z > 1) return;
+        const sx = (pickV.x * 0.5 + 0.5) * rect.width;
+        const sy = (-pickV.y * 0.5 + 0.5) * rect.height;
+        const d = Math.hypot(sx - px, sy - py);
+        if (d < bestD) { bestD = d; best = node.id; }
+      });
+      return best;
     }
     function onPointerMove(ev) {
       const id = pickAt(ev.clientX, ev.clientY);
@@ -347,7 +357,10 @@ export default function LineageGraph() {
     function onPointerUp(ev) {
       if (Math.hypot(ev.clientX - downX, ev.clientY - downY) > 5) return;
       const id = pickAt(ev.clientX, ev.clientY);
-      setSelected((prev) => (id ? (prev === id ? null : id) : null));
+      setSelected((prev) => {
+        if (!id) return prev; // 点到空白不取消选中（避免误触弹回主视图），用 × 关闭
+        return prev === id ? null : id; // 点同一个取消，点别的切换
+      });
     }
     const dom = renderer.domElement;
     dom.addEventListener('pointermove', onPointerMove);
@@ -381,18 +394,34 @@ export default function LineageGraph() {
       const introT = Math.min(1, t / INTRO);
       const spread = 0.12 + 0.88 * easeOut(introT);
 
+      // 平滑插值：球的透明度/缩放/光晕向目标值过渡（切换时不再突变）
+      const k = 0.16;
+      const selPulse = 1 + 0.06 * Math.sin(t * 4); // 选中球轻微呼吸
       NODES.forEach((node) => {
         const o = nodeObjs[node.id];
         o.mesh.position.copy(o.finalPos).multiplyScalar(spread);
+        const isSel = selectedRef.current === node.id;
+        o.mat.opacity += (o.tOp - o.mat.opacity) * k;
+        o.glowMat.opacity += (o.tGlow - o.glowMat.opacity) * k;
+        o.curScale += (o.tScale * (isSel ? selPulse : 1) - o.curScale) * k;
+        o.mesh.scale.setScalar(o.curScale);
+        o.curGlow += (o.tGlowScale * (isSel ? selPulse : 1) - o.curGlow) * k;
+        o.glow.scale.setScalar(o.curGlow);
         o.glow.position.copy(o.mesh.position);
       });
-      shellMeshes.forEach((sm) => sm.mesh.scale.setScalar(spread));
+      shellMeshes.forEach((sm) => {
+        sm.mesh.scale.setScalar(spread);
+        sm.mat.opacity += (sm.tOp - sm.mat.opacity) * k;
+      });
 
       const edgeFade = Math.max(0, (introT - 0.5) / 0.5);
       if (introT < 1) {
         edgeObjs.forEach((eo) => (eo.mat.opacity = eo.baseOpacity * edgeFade));
         particles.forEach((p) => (p.mat.opacity = 0));
-      } else if (!selectedRef.current) {
+      } else {
+        edgeObjs.forEach((eo) => (eo.mat.opacity += (eo.tOp - eo.mat.opacity) * k));
+      }
+      if (introT >= 1 && !selectedRef.current) {
         particles.forEach((p) => {
           if (p.dense) { p.mat.opacity = 0; return; } // 密集簇默认不流动
           const tt = (t * 0.14 + p.offset) % 1;
