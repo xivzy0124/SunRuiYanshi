@@ -541,14 +541,6 @@ export default function LineageGraph() {
           >
             {fullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
           </button>
-          <div className="lineage-3d-hint">拖拽旋转 · 滚轮缩放 · 点击节点查看血缘关系</div>
-          <div className="lineage-3d-legend">
-            <span><i style={{ background: 'var(--accent)' }} />足底压力</span>
-            <span><i style={{ background: 'var(--cyan)' }} />姿态/体态</span>
-            <span><i style={{ background: 'var(--green)' }} />融合</span>
-            <span><i style={{ background: 'var(--orange)' }} />输出</span>
-            <span><i style={{ background: 'var(--muted)' }} />标识/质量</span>
-          </div>
           <div className="lineage-3d-shellhint">
             <span>外层 源字段</span><span>中层 派生·融合</span><span>内核 数据集·API</span>
           </div>

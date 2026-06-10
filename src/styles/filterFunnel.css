@@ -1,0 +1,357 @@
+/* ─── 3D 字段过滤沉降（左 3D + 右信息面板） ─── */
+.ff-section {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+  padding: 4px 32px 28px;
+}
+
+.ff-stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 560px;
+  border-radius: 14px;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(108, 140, 255, 0.08), transparent 60%),
+    var(--bg);
+  border: 1px solid var(--border);
+}
+
+.ff-stage canvas {
+  display: block;
+}
+
+.ff-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.ff-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 4px 10px;
+  border-left: 3px solid var(--accent);
+  background: color-mix(in srgb, var(--card) 70%, transparent);
+  border-radius: 0 7px 7px 0;
+  box-shadow: 0 2px 12px var(--shadow);
+  backdrop-filter: blur(4px);
+  will-change: transform;
+}
+
+.ff-label b {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: 0.3px;
+}
+
+.ff-label span {
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
+}
+
+.ff-ball-labels {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.ff-ball-label {
+  position: absolute;
+  top: 0;
+  left: 0;
+  white-space: nowrap;
+  font: 600 10px/1 'Cascadia Code', 'Fira Code', monospace;
+  color: var(--text);
+  padding: 2px 6px;
+  background: color-mix(in srgb, var(--card) 72%, transparent);
+  border-left: 2px solid var(--fc, var(--accent));
+  border-radius: 0 4px 4px 0;
+  box-shadow: 0 1px 5px var(--shadow);
+  backdrop-filter: blur(2px);
+  will-change: transform, opacity;
+}
+
+.ff-tip {
+  position: absolute;
+  z-index: 5;
+  pointer-events: none;
+  display: none;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 10px;
+  border-left: 3px solid var(--tc, var(--accent));
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  border-radius: 0 7px 7px 0;
+  box-shadow: 0 4px 16px var(--shadow);
+  backdrop-filter: blur(4px);
+}
+
+.ff-tip b {
+  font: 600 12px/1.2 'Cascadia Code', 'Fira Code', monospace;
+  color: var(--text);
+}
+
+.ff-tip span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ff-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.3px;
+  pointer-events: none;
+  user-select: none;
+  z-index: 2;
+}
+
+/* ── 右侧信息面板 ── */
+.ff-side {
+  flex: 0 0 296px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 560px;
+}
+
+.ff-funnel {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.ff-funnel-top,
+.ff-funnel-bottom {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.ff-funnel-top strong {
+  font-size: 22px;
+  color: var(--accent);
+}
+
+.ff-funnel-bottom strong {
+  font-size: 22px;
+  color: var(--cyan);
+}
+
+.ff-funnel-arrow {
+  font-size: 11px;
+  color: var(--muted);
+  margin: 6px 0;
+  letter-spacing: 0.5px;
+}
+
+.ff-fates {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  padding: 10px;
+}
+
+.ff-fates-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  padding: 2px 4px 8px;
+}
+
+.ff-fate-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas: 'dot label count' 'dot sub sub';
+  column-gap: 8px;
+  align-items: center;
+  width: 100%;
+  padding: 7px 8px;
+  margin: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.ff-fate-row:hover {
+  background: color-mix(in srgb, var(--fc) 10%, transparent);
+}
+
+.ff-fate-row.active {
+  background: color-mix(in srgb, var(--fc) 16%, transparent);
+  border-color: var(--fc);
+}
+
+.ff-fate-dot {
+  grid-area: dot;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--fc);
+  box-shadow: 0 0 8px var(--fc);
+}
+
+.ff-fate-label {
+  grid-area: label;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ff-fate-sub {
+  grid-area: sub;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ff-fate-count {
+  grid-area: count;
+  font: 700 12px/1 'Cascadia Code', 'Fira Code', monospace;
+  color: var(--fc);
+}
+
+/* ── 字段详情 ── */
+.ff-detail {
+  flex: 1 1 auto;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  padding: 14px;
+  overflow: auto;
+}
+
+.ff-detail-card {
+  border-left: 3px solid var(--fc);
+  padding-left: 12px;
+}
+
+.ff-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ff-detail-head h4 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.ff-detail-close {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 2px;
+}
+
+.ff-detail-close:hover {
+  color: var(--text);
+}
+
+.ff-detail-name {
+  display: block;
+  margin: 2px 0 10px;
+  font: 600 12px/1.3 'Cascadia Code', 'Fira Code', monospace;
+  color: var(--fc);
+  word-break: break-all;
+}
+
+.ff-detail-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.ff-badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--text) 8%, transparent);
+  color: var(--muted);
+}
+
+.ff-badge-fate {
+  background: color-mix(in srgb, var(--fc) 18%, transparent);
+  color: var(--fc);
+  font-weight: 700;
+}
+
+.ff-detail-rule {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--text-secondary, var(--muted));
+  margin-bottom: 12px;
+}
+
+.ff-detail-to {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border);
+}
+
+.ff-detail-to-label {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.ff-detail-to-name {
+  font-size: 13px;
+  color: var(--text);
+}
+
+.ff-detail-to-name code {
+  font: 600 12px/1 'Cascadia Code', 'Fira Code', monospace;
+  color: var(--cyan);
+}
+
+.ff-detail-to-drop {
+  font-size: 13px;
+  color: #fb7185;
+  font-weight: 600;
+}
+
+.ff-detail-empty {
+  font-size: 12px;
+  line-height: 1.8;
+  color: var(--muted);
+  text-align: center;
+  padding: 24px 8px;
+}
+
+/* 窄屏：上下堆叠 */
+@media (max-width: 900px) {
+  .ff-section {
+    flex-direction: column;
+  }
+  .ff-side {
+    flex-basis: auto;
+    height: auto;
+  }
+}

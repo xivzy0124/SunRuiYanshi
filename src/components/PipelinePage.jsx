@@ -4,6 +4,7 @@ import SectionTitle from './SectionTitle';
 import UnifiedPipeline from './UnifiedPipeline';
 import DetailPanel from './DetailPanel';
 import LineageGraph from './LineageGraph';
+import FilterFunnel3D from './FilterFunnel3D';
 
 export default function PipelinePage({ onBack }) {
   const [activeId, setActiveId] = useState(null);
@@ -18,7 +19,8 @@ export default function PipelinePage({ onBack }) {
     const t1 = setTimeout(() => setPhase(1), 600);
     const t2 = setTimeout(() => setPhase(2), 2200);
     const t3 = setTimeout(() => setPhase(3), 3200);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    const t4 = setTimeout(() => setPhase(4), 4200);
+    return () => { [t1, t2, t3, t4].forEach(clearTimeout); };
   }, []);
 
   return (
@@ -39,6 +41,13 @@ export default function PipelinePage({ onBack }) {
 
       <div className={`pipe-reveal ${phase >= 3 ? 'visible' : ''}`}>
         <LineageGraph />
+      </div>
+
+      <div className={`pipe-reveal ${phase >= 4 ? 'visible' : ''}`}>
+        <SectionTitle color="var(--cyan)" hint="源字段逐层沉降 · 筛除剔除 · 双源合并 · 落入数据集">
+          字段过滤与数据沉降
+        </SectionTitle>
+        <FilterFunnel3D />
       </div>
     </div>
   );
