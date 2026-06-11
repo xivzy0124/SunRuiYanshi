@@ -1,3 +1,63 @@
+/* ─── 承接上文的流向桥接（血缘图谱 → 字段沉降） ─── */
+.ff-bridge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 32px 0;
+}
+
+.ff-bridge-channel {
+  position: relative;
+  width: 2px;
+  height: 44px;
+  border-radius: 2px;
+  background: linear-gradient(180deg, var(--accent3), var(--cyan));
+  opacity: 0.55;
+}
+
+.ff-bridge-channel i {
+  position: absolute;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 8px var(--cyan);
+  animation: ff-flow-dot 2.4s linear infinite;
+}
+
+.ff-bridge-channel i:nth-child(2) { animation-delay: 0.8s; }
+.ff-bridge-channel i:nth-child(3) { animation-delay: 1.6s; }
+
+@keyframes ff-flow-dot {
+  0% { top: -6px; opacity: 0; }
+  15% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { top: 44px; opacity: 0; }
+}
+
+.ff-bridge-caption {
+  font-size: 12px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.7;
+}
+
+.ff-bridge-caption b {
+  color: var(--accent3);
+  font-weight: 700;
+}
+
+.ff-bridge-caption em {
+  display: block;
+  font-style: normal;
+  font-size: 11px;
+  color: var(--cyan);
+  letter-spacing: 0.4px;
+}
+
 /* ─── 3D 字段过滤沉降（左 3D + 右信息面板） ─── */
 .ff-section {
   display: flex;

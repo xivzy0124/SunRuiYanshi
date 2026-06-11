@@ -101,22 +101,6 @@ function makePlaneTexture() {
   return tex;
 }
 
-function makeGlowTexture() {
-  const size = 128;
-  const c = document.createElement('canvas');
-  c.width = c.height = size;
-  const ctx = c.getContext('2d');
-  const g = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
-  g.addColorStop(0, 'rgba(255,255,255,1)');
-  g.addColorStop(0.25, 'rgba(255,255,255,0.55)');
-  g.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, size, size);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
-
 export default function FilterFunnel3D() {
   const mountRef = useRef(null);
   const labelsRef = useRef(null);
@@ -154,6 +138,12 @@ export default function FilterFunnel3D() {
     renderer.setSize(width, height);
     container.appendChild(renderer.domElement);
     renderer.domElement.style.cursor = 'grab';
+
+    // 灯光：半球光给柔和环境 + 方向光给明暗立体（哑光、不发光）
+    scene.add(new THREE.HemisphereLight(0xbcd0ff, 0x1a2030, 0.95));
+    const keyLight = new THREE.DirectionalLight(0xffffff, 0.95);
+    keyLight.position.set(140, 320, 220);
+    scene.add(keyLight);
 
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
@@ -201,8 +191,7 @@ export default function FilterFunnel3D() {
     }
 
     // ── 字段小球 ──
-    const glowTex = makeGlowTexture();
-    const sphereGeo = new THREE.SphereGeometry(1, 20, 20);
+    const sphereGeo = new THREE.SphereGeometry(1, 32, 32);
     const particles = [];
     const pickables = [];
     let now = 0;
@@ -245,23 +234,23 @@ export default function FilterFunnel3D() {
     for (let n = 0; n < INSTANCES; n += 1) {
       FIELD_POOL.forEach((field) => {
         const color = new THREE.Color(FATES[field.fate].color);
-        const mat = new THREE.MeshBasicMaterial({ color: color.clone(), transparent: true, opacity: 1 });
+        const mat = new THREE.MeshStandardMaterial({
+          color: color.clone(),
+          roughness: 0.85,
+          metalness: 0,
+          transparent: true,
+          opacity: 1,
+        });
         const mesh = new THREE.Mesh(sphereGeo, mat);
         mesh.userData.idx = pi;
         scene.add(mesh);
         pickables.push(mesh);
-        const glowMat = new THREE.SpriteMaterial({
-          map: glowTex, color: color.clone(), transparent: true, opacity: 0.55,
-          depthWrite: false, blending: THREE.AdditiveBlending,
-        });
-        const glow = new THREE.Sprite(glowMat);
-        scene.add(glow);
         const labelEl = document.createElement('div');
         labelEl.className = 'ff-ball-label';
         labelEl.textContent = field.name;
         labelEl.style.setProperty('--fc', FATES[field.fate].color);
         ballLayer.appendChild(labelEl);
-        const p = { mesh, mat, glow, glowMat, labelEl, field, terminal: TERMINAL[field.fate], dim: 0, boost: 0 };
+        const p = { mesh, mat, labelEl, field, terminal: TERMINAL[field.fate], dim: 0, boost: 0 };
         respawn(p, true);
         particles.push(p);
         pi += 1;
@@ -273,6 +262,31 @@ export default function FilterFunnel3D() {
       p.z += p.dvz * dt;
       if (p.x > BOUND_X || p.x < -BOUND_X) { p.dvx *= -1; p.x = Math.max(-BOUND_X, Math.min(BOUND_X, p.x)); }
       if (p.z > BOUND_D || p.z < -BOUND_D) { p.dvz *= -1; p.z = Math.max(-BOUND_D, Math.min(BOUND_D, p.z)); }
+    }
+
+    // 同层停驻球互相推开，避免重叠穿透（平面上的 2D 分离）
+    function separate(list) {
+      for (let i = 0; i < list.length; i += 1) {
+        const a = list[i];
+        for (let j = i + 1; j < list.length; j += 1) {
+          const b = list[j];
+          let dx = a.x - b.x;
+          let dz = a.z - b.z;
+          const minD = (a.r + b.r) * 0.92;
+          let d = Math.hypot(dx, dz);
+          if (d >= minD) continue;
+          if (d < 1e-3) { dx = Math.random() - 0.5; dz = Math.random() - 0.5; d = Math.hypot(dx, dz) || 1; }
+          const push = (minD - d) * 0.5;
+          const ux = dx / d;
+          const uz = dz / d;
+          a.x += ux * push; a.z += uz * push;
+          b.x -= ux * push; b.z -= uz * push;
+        }
+      }
+      list.forEach((p) => {
+        p.x = Math.max(-BOUND_X, Math.min(BOUND_X, p.x));
+        p.z = Math.max(-BOUND_D, Math.min(BOUND_D, p.z));
+      });
     }
 
     // ── 拾取 ──
@@ -327,6 +341,7 @@ export default function FilterFunnel3D() {
     const clock = new THREE.Clock();
     const tmp = new THREE.Vector3();
     const lp = new THREE.Vector3();
+    const restGroups = STAGES.map(() => []);
     let raf;
     function animate() {
       raf = requestAnimationFrame(animate);
@@ -339,8 +354,9 @@ export default function FilterFunnel3D() {
       const anyFocus = sel || fate || hov;
       controls.autoRotate = !(sel || hov);
 
+      // 1) 物理状态更新
       particles.forEach((p) => {
-        const bob = Math.sin(now * 1.4 + p.phase) * 2.2;
+        const bob = Math.sin(now * 1.4 + p.phase) * 1.4;
         if (p.state === 'collect') {
           p.y = STAGES[0].y + p.r + bob;
           driftOnPlane(p, dt);
@@ -355,9 +371,9 @@ export default function FilterFunnel3D() {
           }
         } else if (p.state === 'settled') {
           if (p.field.fate === 'merge') {
-            // 归并：向融合层中心轴汇聚
-            p.x += (0 - p.x) * Math.min(1, dt * 0.9);
-            p.z += (0 - p.z) * Math.min(1, dt * 0.9);
+            // 归并：向融合层中心轴汇聚（分离会把它们挤成一团）
+            p.x += (0 - p.x) * Math.min(1, dt * 0.6);
+            p.z += (0 - p.z) * Math.min(1, dt * 0.6);
           } else {
             driftOnPlane(p, dt);
           }
@@ -370,21 +386,27 @@ export default function FilterFunnel3D() {
         }
 
         const isFocus = sel ? p.field.id === sel : fate ? p.field.fate === fate : hov ? p.field.id === hov : false;
-        const targetDim = anyFocus && !isFocus ? 1 : 0;
-        const targetBoost = isFocus ? 1 : 0;
-        p.dim += (targetDim - p.dim) * 0.16;
-        p.boost += (targetBoost - p.boost) * 0.16;
+        p.dim += ((anyFocus && !isFocus ? 1 : 0) - p.dim) * 0.16;
+        p.boost += ((isFocus ? 1 : 0) - p.boost) * 0.16;
+      });
 
-        const pulse = 1 + 0.06 * Math.sin(now * 2.5 + p.phase) + 0.5 * p.boost;
+      // 2) 碰撞分离：同层停驻的球互相推开
+      restGroups.forEach((g) => { g.length = 0; });
+      particles.forEach((p) => {
+        if (p.fading) return;
+        if (p.state === 'settled') restGroups[p.terminal].push(p);
+        else if (p.state === 'collect') restGroups[0].push(p);
+      });
+      restGroups.forEach((g) => { if (g.length > 1) separate(g); });
+
+      // 3) 应用到网格 + 字段名标签
+      particles.forEach((p) => {
+        const pulse = 1 + 0.05 * Math.sin(now * 2.5 + p.phase) + 0.32 * p.boost;
         const opacityFactor = 1 - 0.86 * p.dim;
         p.mesh.position.set(p.x, p.y, p.z);
         p.mesh.scale.setScalar(p.r * pulse);
         p.mat.opacity = p.alpha * opacityFactor;
-        p.glow.position.copy(p.mesh.position);
-        p.glow.scale.setScalar(p.r * 3.2 * pulse);
-        p.glowMat.opacity = (0.5 + 0.4 * p.boost) * p.alpha * opacityFactor;
 
-        // 球上的字段名标签
         const el = p.labelEl;
         lp.copy(p.mesh.position);
         lp.y += p.r + 6;
@@ -437,7 +459,6 @@ export default function FilterFunnel3D() {
       sphereGeo.dispose();
       planeGeo.dispose();
       planeTex.dispose();
-      glowTex.dispose();
       scene.traverse((obj) => {
         if (obj.geometry) obj.geometry.dispose();
         if (obj.material) {
