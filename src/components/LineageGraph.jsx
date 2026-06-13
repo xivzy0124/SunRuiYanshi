@@ -43,6 +43,39 @@ const FIELDS = [
   { id: 'shoulder_span', name: 'shoulder_span', cn: '肩跨度', type: 'float', cat: '中心位置', v: '--cyan', desc: '由关键点计算的肩部水平跨度。' },
 ];
 
+// ─── 姿态关键点（pose 模型直接输出的归一化骨骼点，是体态指标的真实上游） ───
+const KP_DEF = [
+  ['nose', '鼻尖'], ['left_eye', '左眼'], ['right_eye', '右眼'], ['left_ear', '左耳'], ['right_ear', '右耳'],
+  ['left_shoulder', '左肩'], ['right_shoulder', '右肩'], ['left_elbow', '左肘'], ['right_elbow', '右肘'],
+  ['left_wrist', '左腕'], ['right_wrist', '右腕'], ['left_hip', '左髋'], ['right_hip', '右髋'],
+  ['left_knee', '左膝'], ['right_knee', '右膝'], ['left_ankle', '左踝'], ['right_ankle', '右踝'],
+];
+const KEYPOINTS = KP_DEF.map(([k, cn]) => ({
+  id: `kp:${k}`, name: `kp_${k}`, cn: `${cn}关键点`, type: 'point', cat: '关键点', v: '--purple',
+  desc: `姿态模型逐帧输出的「${cn}」归一化坐标 (x, y, 可见度)，是体态角度与身体尺寸指标的原始上游，并清洗后汇入融合姿态数据。`,
+}));
+
+// ─── 足底压力派生指标（由左右脚压力阵列算出，是步态/平衡分析的真实中间字段） ───
+const PRESSURE_METRICS = [
+  { id: 'left_cop_x', name: 'left_cop_x', cn: '左脚压心X', type: 'float', cat: '足压指标', v: '--accent', desc: '由左脚压力阵列计算的足底压力中心(COP)横向坐标，反映左脚重心偏移。' },
+  { id: 'left_cop_y', name: 'left_cop_y', cn: '左脚压心Y', type: 'float', cat: '足压指标', v: '--accent', desc: '由左脚压力阵列计算的足底压力中心(COP)纵向坐标，反映前后重心分布。' },
+  { id: 'right_cop_x', name: 'right_cop_x', cn: '右脚压心X', type: 'float', cat: '足压指标', v: '--accent', desc: '由右脚压力阵列计算的足底压力中心(COP)横向坐标。' },
+  { id: 'right_cop_y', name: 'right_cop_y', cn: '右脚压心Y', type: 'float', cat: '足压指标', v: '--accent', desc: '由右脚压力阵列计算的足底压力中心(COP)纵向坐标。' },
+  { id: 'left_force_total', name: 'left_force_total', cn: '左脚总压力', type: 'float', cat: '足压指标', v: '--accent', desc: '左脚压力阵列各点求和得到的总受力，用于左右承重对比。' },
+  { id: 'right_force_total', name: 'right_force_total', cn: '右脚总压力', type: 'float', cat: '足压指标', v: '--accent', desc: '右脚压力阵列各点求和得到的总受力。' },
+  { id: 'left_contact_area', name: 'left_contact_area', cn: '左脚接触面积', type: 'float', cat: '足压指标', v: '--accent', desc: '左脚压力阵列中超过阈值的传感点占比，估算足底接触面积。' },
+  { id: 'right_contact_area', name: 'right_contact_area', cn: '右脚接触面积', type: 'float', cat: '足压指标', v: '--accent', desc: '右脚压力阵列中超过阈值的传感点占比。' },
+  { id: 'pressure_balance', name: 'pressure_balance', cn: '左右压力均衡度', type: 'float', cat: '足压指标', v: '--accent', desc: '由左右脚总压力计算的承重均衡比例，是平衡评估的关键中间量。' },
+  { id: 'arch_index', name: 'arch_index', cn: '足弓指数', type: 'float', cat: '足压指标', v: '--accent', desc: '由左右脚接触面积比推算的足弓形态指数(高弓/扁平)。' },
+];
+
+// ─── 综合评分（由多项体态/压力指标聚合，处于血缘最末端，链路最深） ───
+const SCORES = [
+  { id: 'posture_score', name: 'posture_score', cn: '体态综合评分', type: 'float', cat: '综合评分', v: '--green', desc: '由头/颈/盆/躯干多项角度加权聚合的体态健康总评分。' },
+  { id: 'balance_score', name: 'balance_score', cn: '平衡综合评分', type: 'float', cat: '综合评分', v: '--green', desc: '由左右压力均衡度与双脚压心偏移聚合的站立平衡评分。' },
+  { id: 'symmetry_index', name: 'symmetry_index', cn: '左右对称指数', type: 'float', cat: '综合评分', v: '--green', desc: '由肩宽/髋宽与左右压力均衡度聚合的身体左右对称性指数。' },
+];
+
 const PROC = [
   { id: 'proc:ts', name: 'ts', cn: '统一时间戳', type: 'int64', cat: '融合', v: '--green', desc: '毫秒级对齐后的统一时间戳，双流融合主键。' },
   { id: 'proc:pressure_data', name: 'pressure_data', cn: '融合压力数据', type: 'float[]', cat: '融合', v: '--green', desc: '左右脚压力清洗标准化后的融合压力数据。' },
@@ -51,7 +84,7 @@ const PROC = [
   { id: 'out:api', name: '/api/v1/latest', cn: 'API 接口', type: 'endpoint', cat: '输出', v: '--orange', desc: '对外发布的标准化数据接口，供后续模块实时调用。' },
 ];
 
-const NODES = [...FIELDS, ...PROC];
+const NODES = [...FIELDS, ...KEYPOINTS, ...PRESSURE_METRICS, ...SCORES, ...PROC];
 const NODE_BY_ID = Object.fromEntries(NODES.map((n) => [n.id, n]));
 
 const DERIVED = [
@@ -60,7 +93,55 @@ const DERIVED = [
   'head_center_x', 'shoulder_center_x', 'shoulder_span',
 ];
 
+// 体态指标 ← 真实的关键点来源（与人体测量学一致）
+const DERIVE_SRC = {
+  head_tilt_deg: ['nose', 'left_ear', 'right_ear'],
+  shoulder_tilt_deg: ['left_shoulder', 'right_shoulder'],
+  pelvis_tilt_deg: ['left_hip', 'right_hip'],
+  trunk_shift_percent: ['left_shoulder', 'right_shoulder', 'left_hip', 'right_hip'],
+  total_height: ['nose', 'left_ankle', 'right_ankle'],
+  shoulder_width: ['left_shoulder', 'right_shoulder'],
+  hip_width: ['left_hip', 'right_hip'],
+  torso_length: ['left_shoulder', 'right_shoulder', 'left_hip', 'right_hip'],
+  leg_length: ['left_hip', 'left_knee', 'left_ankle', 'right_hip', 'right_knee', 'right_ankle'],
+  arm_length: ['left_shoulder', 'left_elbow', 'left_wrist', 'right_shoulder', 'right_elbow', 'right_wrist'],
+  head_width: ['left_ear', 'right_ear'],
+  head_center_x: ['nose', 'left_eye', 'right_eye'],
+  shoulder_center_x: ['left_shoulder', 'right_shoulder'],
+  shoulder_span: ['left_shoulder', 'right_shoulder'],
+};
+const DERIVE_EDGES = Object.entries(DERIVE_SRC).flatMap(([field, srcs]) =>
+  srcs.map((s) => ({ from: `kp:${s}`, to: field, type: 'derive' }))
+);
+// 全部关键点清洗后汇入融合姿态数据
+const POSEFUSE_EDGES = KP_DEF.map(([k]) => ({ from: `kp:${k}`, to: 'proc:pose_data', type: 'posefuse' }));
+
+// 足压指标 ← 压力阵列；均衡度/足弓再由前序指标聚合（形成多级链路）
+const PRESSURE_DERIVE = {
+  left_cop_x: ['left_pressures_json'], left_cop_y: ['left_pressures_json'],
+  left_force_total: ['left_pressures_json'], left_contact_area: ['left_pressures_json'],
+  right_cop_x: ['right_pressures_json'], right_cop_y: ['right_pressures_json'],
+  right_force_total: ['right_pressures_json'], right_contact_area: ['right_pressures_json'],
+  pressure_balance: ['left_force_total', 'right_force_total'],
+  arch_index: ['left_contact_area', 'right_contact_area'],
+};
+// 综合评分 ← 多项体态/压力指标聚合
+const SCORE_DERIVE = {
+  posture_score: ['head_tilt_deg', 'shoulder_tilt_deg', 'pelvis_tilt_deg', 'trunk_shift_percent'],
+  balance_score: ['pressure_balance', 'left_cop_x', 'right_cop_x'],
+  symmetry_index: ['shoulder_width', 'hip_width', 'pressure_balance'],
+};
+const METRIC_DERIVE_EDGES = [...Object.entries(PRESSURE_DERIVE), ...Object.entries(SCORE_DERIVE)]
+  .flatMap(([f, srcs]) => srcs.map((s) => ({ from: s, to: f, type: 'derive' })));
+// 新增指标携带入库
+const METRIC_CARRY_EDGES = [...Object.keys(PRESSURE_DERIVE), ...Object.keys(SCORE_DERIVE)]
+  .map((d) => ({ from: d, to: 'out:db', type: 'carry' }));
+
 const EDGES = [
+  ...DERIVE_EDGES,
+  ...POSEFUSE_EDGES,
+  ...METRIC_DERIVE_EDGES,
+  ...METRIC_CARRY_EDGES,
   { from: 'left_pressures_json', to: 'proc:pressure_data', type: 'clean' },
   { from: 'right_pressures_json', to: 'proc:pressure_data', type: 'clean' },
   { from: 'pose_timestamp', to: 'proc:ts', type: 'timealign' },
@@ -79,7 +160,7 @@ const EDGES = [
 
 const REL_WORD = {
   clean: '清洗标准化', derive: '派生计算', timealign: '时序对齐', match: '匹配判定',
-  converge: '汇入融合', carry: '携带入库', publish: '对外发布',
+  converge: '汇入融合', carry: '携带入库', publish: '对外发布', posefuse: '姿态融合',
 };
 const REL_COLORVAR = { match: '--green', converge: '--green', publish: '--orange' };
 function edgeColorVar(edge) { return REL_COLORVAR[edge.type] || NODE_BY_ID[edge.from].v; }
@@ -87,14 +168,14 @@ function edgeColorVar(edge) { return REL_COLORVAR[edge.type] || NODE_BY_ID[edge.
 const CAT_LABELS = {
   标识: '标识', 时间戳: '时间戳', 时间差: '时间差', 压力数据: '压力数据', 匹配状态: '匹配状态',
   '帧率/检测': '帧率/检测', 体态角度: '体态角度', 身体尺寸: '身体尺寸', 中心位置: '中心位置',
-  关键点: '关键点', 融合: '融合处理', 输出: '输出',
+  关键点: '关键点', 足压指标: '足压指标', 综合评分: '综合评分', 融合: '融合处理', 输出: '输出',
 };
 
 // ─── 同心球壳：外层=源字段 / 中层=派生·融合 / 内核=输出 ───
 const SHELL_R = [168, 96, 24];
 function shellOf(node) {
   if (node.id.startsWith('out:')) return 2;
-  if (['体态角度', '身体尺寸', '中心位置', '融合', '匹配状态'].includes(node.cat)) return 1;
+  if (['体态角度', '身体尺寸', '中心位置', '足压指标', '综合评分', '融合', '匹配状态'].includes(node.cat)) return 1;
   return 0;
 }
 
@@ -118,26 +199,56 @@ function computeLayout() {
   return pos;
 }
 
-function computeLineageChain(selectedId) {
-  const upstream = new Set();
-  const downstream = new Set();
-  let queue = [selectedId];
-  let visited = new Set([selectedId]);
+// 沿血缘方向做 BFS 分层：dir='up' 取上游(edge.to===cur→from)，'down' 取下游
+function bfsLevels(selId, dir) {
+  const level = {};
+  const visited = new Set([selId]);
+  let queue = [[selId, 0]];
   while (queue.length) {
-    const current = queue.shift();
-    for (const edge of EDGES) {
-      if (edge.to === current && !visited.has(edge.from)) { visited.add(edge.from); upstream.add(edge.from); queue.push(edge.from); }
+    const [cur, d] = queue.shift();
+    for (const e of EDGES) {
+      const next = dir === 'up' ? (e.to === cur ? e.from : null) : (e.from === cur ? e.to : null);
+      if (next && !visited.has(next)) { visited.add(next); level[next] = d + 1; queue.push([next, d + 1]); }
     }
   }
-  queue = [selectedId];
-  visited = new Set([selectedId]);
-  while (queue.length) {
-    const current = queue.shift();
-    for (const edge of EDGES) {
-      if (edge.from === current && !visited.has(edge.to)) { visited.add(edge.to); downstream.add(edge.to); queue.push(edge.to); }
-    }
+  return level; // 不含 selId 自身
+}
+
+// 选中后的「绽放」布局：本字段固定在中心，上游向上半区、下游向下半区张成饱满的弧形花瓣。
+// 非链路节点全部隐藏，相机再自适应取景，所以这里只追求构图美观、半径有界即可。
+const SEL_RING_BASE = 86;   // 第一层环半径
+const SEL_RING_GAP = 72;    // 每深一层增加的半径
+const SEL_MAX_HALF = 1.62;  // 单层最大张角(±约93°)，超过则分内外两环避免拥挤
+function computeSelLayout(selId) {
+  const upLvl = bfsLevels(selId, 'up');
+  const downLvl = bfsLevels(selId, 'down');
+  const byLevel = new Map(); // signedLevel(>0上游 / <0下游) → [ids]
+  const push = (lvl, id) => { if (!byLevel.has(lvl)) byLevel.set(lvl, []); byLevel.get(lvl).push(id); };
+  Object.entries(upLvl).forEach(([id, d]) => push(d, id));
+  Object.entries(downLvl).forEach(([id, d]) => push(-d, id));
+  const layout = { [selId]: new THREE.Vector3(0, 0, 0) };
+  let maxR = SEL_RING_BASE;
+  for (const [lvl, ids] of byLevel) {
+    const depth = Math.abs(lvl);
+    const up = lvl > 0 ? 1 : -1;
+    const n = ids.length;
+    // 字段多到一层弧排不下时，拆成内外两道弧（前后分排），各自张角不至于过密
+    const ringCount = n > 9 ? 2 : 1;
+    ids.forEach((id, i) => {
+      const ring = i % ringCount;
+      const idxInRing = Math.floor(i / ringCount);
+      const ringN = Math.ceil((n - ring) / ringCount);
+      const R = SEL_RING_BASE + (depth - 1) * SEL_RING_GAP + ring * 42;
+      const half = ringN === 1 ? 0 : Math.min((ringN - 1) * 0.40, SEL_MAX_HALF);
+      const a = ringN === 1 ? 0 : -half + idxInRing * ((2 * half) / (ringN - 1));
+      const x = R * Math.sin(a);
+      const y = up * R * Math.cos(a);
+      layout[id] = new THREE.Vector3(x, y, (i % 2 ? 1 : -1) * Math.min(depth * 12, 36) - ring * 26);
+      maxR = Math.max(maxR, Math.hypot(x, y));
+    });
   }
-  return { chain: new Set([selectedId, ...upstream, ...downstream]), upstream, downstream };
+  const chain = new Set([selId, ...Object.keys(upLvl), ...Object.keys(downLvl)]);
+  return { chain, layout, maxR };
 }
 
 function baseRadius(node) {
@@ -288,7 +399,7 @@ export default function LineageGraph() {
       const mid = a.clone().add(b).multiplyScalar(0.5).multiplyScalar(0.86);
       const curve = new THREE.QuadraticBezierCurve3(a.clone(), mid, b.clone());
       // 派生/携带是密集簇（landmarks 扇出、out:db 汇入），默认收起，仅选中相关节点时点亮
-      const dense = e.type === 'derive' || e.type === 'carry';
+      const dense = e.type === 'derive' || e.type === 'carry' || e.type === 'posefuse';
       const tubeGeo = new THREE.TubeGeometry(curve, 32, dense ? 0.34 : 0.55, 6, false);
       const cv = edgeColorVar(e);
       const baseOpacity = dense ? 0 : 0.4;
@@ -303,28 +414,72 @@ export default function LineageGraph() {
       particles.push({ mesh: pMesh, mat: pMat, curve, offset: (i % 9) / 9, cv, dense });
     });
 
+    // ── 动态血缘连线（选中态纵向布局时按节点实时位置连接链路 + 流向粒子） ──
+    const CHAIN_SEG = 18;
+    const CHAIN_POOL = 220;
+    const chainLines = [];
+    const chainParts = [];
+    for (let i = 0; i < CHAIN_POOL; i++) {
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(new Float32Array((CHAIN_SEG + 1) * 3), 3));
+      const mat = new THREE.LineBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+      const line = new THREE.Line(geo, mat);
+      line.frustumCulled = false; line.visible = false;
+      scene.add(line);
+      chainLines.push({ line, geo, mat });
+
+      const cpMat = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0, depthWrite: false });
+      const cpMesh = new THREE.Mesh(partGeo, cpMat);
+      cpMesh.visible = false;
+      scene.add(cpMesh);
+      chainParts.push({ mesh: cpMesh, mat: cpMat });
+    }
+    const sMid = new THREE.Vector3(), sP = new THREE.Vector3();
+    function quadBez(a, mid, b, t, out) {
+      const u = 1 - t;
+      out.set(
+        u * u * a.x + 2 * u * t * mid.x + t * t * b.x,
+        u * u * a.y + 2 * u * t * mid.y + t * t * b.y,
+        u * u * a.z + 2 * u * t * mid.z + t * t * b.z,
+      );
+    }
+
     // ── 高亮目标：选中/悬停只更新"目标值"，由渲染循环平滑插值过渡 ──
     let currentChain = null;
+    let selLayout = null;          // 选中态布局：id → 目标坐标
+    let selMaxR = 0;               // 链路最大半径，用于相机自适应取景
+    let activeChainEdges = [];     // 选中链路内的边（动态连线用）
     let hoverId = null;
     function updateTargets() {
       const selId = selectedRef.current;
-      currentChain = selId ? computeLineageChain(selId).chain : null;
+      if (selId) {
+        const r = computeSelLayout(selId);
+        currentChain = r.chain;
+        selLayout = r.layout;
+        selMaxR = r.maxR;
+        activeChainEdges = EDGES.filter((e) => currentChain.has(e.from) && currentChain.has(e.to));
+      } else {
+        currentChain = null;
+        selLayout = null;
+        selMaxR = 0;
+        activeChainEdges = [];
+      }
+      controls.autoRotateSpeed = selId ? 0.22 : 0.42; // 选中时放慢自转
       const ch = currentChain;
       NODES.forEach((node) => {
         const o = nodeObjs[node.id];
         const inChain = !ch || ch.has(node.id);
         const isSel = selId === node.id;
         const isHover = !selId && hoverId === node.id; // 选中态不叠加悬停
-        o.tOp = inChain ? 1 : 0.07;
-        o.tGlow = isSel ? 1 : isHover ? 0.85 : inChain ? 0.5 : 0.02;
-        o.tScale = (isSel ? 1.6 : isHover ? 1.22 : 1) * o.baseR;
-        o.tGlowScale = (isSel ? 1.5 : 1) * o.glowBase;
+        // 选中后非链路节点完全隐藏，只留下当前血缘
+        o.tOp = inChain ? 1 : 0;
+        o.tGlow = isSel ? 1 : isHover ? 0.85 : ch ? (inChain ? 0.55 : 0) : inChain ? 0.5 : 0.02;
+        o.tScale = (isSel ? 1.7 : isHover ? 1.22 : 1) * o.baseR;
+        o.tGlowScale = (isSel ? 1.7 : 1) * o.glowBase;
       });
-      edgeObjs.forEach((eo) => {
-        const inChain = !ch || (ch.has(eo.from) && ch.has(eo.to));
-        eo.tOp = ch ? (inChain ? 0.9 : 0.02) : eo.baseOpacity;
-      });
-      shellMeshes.forEach((sm) => (sm.tOp = ch ? 0.02 : 0.05));
+      // 选中态由动态血缘连线接管，静态同心连线 + 壳层整体隐藏
+      edgeObjs.forEach((eo) => { eo.tOp = ch ? 0 : eo.baseOpacity; });
+      shellMeshes.forEach((sm) => (sm.tOp = ch ? 0 : 0.05));
     }
     const applySelection = () => updateTargets();
     function setHover(id) {
@@ -346,7 +501,7 @@ export default function LineageGraph() {
       pointer.y = -((clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(pointer, camera);
       const hits = raycaster.intersectObjects(pickables, false);
-      if (hits.length) return hits[0].object.userData.id;
+      for (const h of hits) { if (h.object.visible) return h.object.userData.id; }
       // 屏幕就近兜底：射线没命中时，取点击位置 30px 内最靠前的节点
       const px = clientX - rect.left;
       const py = clientY - rect.top;
@@ -354,6 +509,7 @@ export default function LineageGraph() {
       let bestD = 30;
       NODES.forEach((node) => {
         const o = nodeObjs[node.id];
+        if (!o.mesh.visible) return; // 隐藏节点不参与就近兜底
         pickV.copy(o.mesh.position).project(camera);
         if (pickV.z > 1) return;
         const sx = (pickV.x * 0.5 + 0.5) * rect.width;
@@ -402,6 +558,7 @@ export default function LineageGraph() {
     const clock = new THREE.Clock();
     const INTRO = 1.6;
     const tmp = new THREE.Vector3();
+    let camLastSel = null, camReframe = 0, camWantDist = 500;
     let raf;
     function animate() {
       raf = requestAnimationFrame(animate);
@@ -411,11 +568,23 @@ export default function LineageGraph() {
 
       // 平滑插值：球的透明度/缩放/光晕向目标值过渡（切换时不再突变）
       const k = 0.16;
+      const sel = selectedRef.current;
       const selPulse = 1 + 0.06 * Math.sin(t * 4); // 选中球轻微呼吸
       NODES.forEach((node) => {
         const o = nodeObjs[node.id];
-        o.mesh.position.copy(o.finalPos).multiplyScalar(spread);
-        const isSel = selectedRef.current === node.id;
+        const isSel = sel === node.id;
+        // 目标位置：选中链路 → 绽放布局(上游上半/下游下半)，其余 → 同心球
+        const lp = sel && selLayout ? selLayout[node.id] : null;
+        const tx = lp ? lp.x : o.finalPos.x * spread;
+        const ty = lp ? lp.y : o.finalPos.y * spread;
+        const tz = lp ? lp.z : o.finalPos.z * spread;
+        if (introT < 1) {
+          o.mesh.position.set(tx, ty, tz);
+        } else {
+          o.mesh.position.x += (tx - o.mesh.position.x) * k;
+          o.mesh.position.y += (ty - o.mesh.position.y) * k;
+          o.mesh.position.z += (tz - o.mesh.position.z) * k;
+        }
         o.mat.opacity += (o.tOp - o.mat.opacity) * k;
         o.glowMat.opacity += (o.tGlow - o.glowMat.opacity) * k;
         o.curScale += (o.tScale * (isSel ? selPulse : 1) - o.curScale) * k;
@@ -423,6 +592,10 @@ export default function LineageGraph() {
         o.curGlow += (o.tGlowScale * (isSel ? selPulse : 1) - o.curGlow) * k;
         o.glow.scale.setScalar(o.curGlow);
         o.glow.position.copy(o.mesh.position);
+        // 透明度归零的非链路节点直接隐藏：既不渲染也不可点选
+        const vis = o.mat.opacity > 0.02;
+        o.mesh.visible = vis;
+        o.glow.visible = vis && o.glowMat.opacity > 0.01;
       });
       shellMeshes.forEach((sm) => {
         sm.mesh.scale.setScalar(spread);
@@ -447,11 +620,56 @@ export default function LineageGraph() {
         particles.forEach((p) => (p.mat.opacity = 0));
       }
 
-      // DOM 标签：投影到屏幕；未选中常显+深度淡化，选中只显示链路
-      const sel = selectedRef.current;
+      // 动态血缘连线：选中态按节点实时位置连出弧线 + from→to 流向粒子
+      if (sel && activeChainEdges.length) {
+        const flow = (t * 0.45) % 1;
+        for (let i = 0; i < chainLines.length; i++) {
+          const cl = chainLines[i];
+          const cp = chainParts[i];
+          const e = activeChainEdges[i];
+          if (!e) {
+            cl.mat.opacity += (0 - cl.mat.opacity) * k;
+            if (cl.mat.opacity < 0.02) cl.line.visible = false;
+            cp.mesh.visible = false; cp.mat.opacity = 0;
+            continue;
+          }
+          const a = nodeObjs[e.from].mesh.position;
+          const b = nodeObjs[e.to].mesh.position;
+          sMid.copy(a).add(b).multiplyScalar(0.5);
+          sMid.z += 28; // 前凸成弧，避免直线重叠
+          const arr = cl.geo.attributes.position.array;
+          for (let s = 0; s <= CHAIN_SEG; s++) {
+            quadBez(a, sMid, b, s / CHAIN_SEG, sP);
+            arr[s * 3] = sP.x; arr[s * 3 + 1] = sP.y; arr[s * 3 + 2] = sP.z;
+          }
+          cl.geo.attributes.position.needsUpdate = true;
+          const c = col(edgeColorVar(e));
+          cl.line.visible = true;
+          cl.mat.color.copy(c);
+          cl.mat.opacity += (0.78 - cl.mat.opacity) * k;
+          quadBez(a, sMid, b, (flow + (i % 5) / 5) % 1, sP);
+          cp.mesh.visible = true;
+          cp.mesh.position.copy(sP);
+          cp.mat.color.copy(c);
+          cp.mat.opacity = 0.95;
+        }
+      } else {
+        for (let i = 0; i < chainLines.length; i++) {
+          const cl = chainLines[i];
+          if (cl.line.visible) {
+            cl.mat.opacity += (0 - cl.mat.opacity) * k;
+            if (cl.mat.opacity < 0.02) cl.line.visible = false;
+          }
+          chainParts[i].mesh.visible = false;
+          chainParts[i].mat.opacity = 0;
+        }
+      }
+
+      // DOM 标签：先投影收集候选，再按优先级做屏幕去重叠，避免文字互相遮挡
       const camDist = camera.position.length();
       const near = camDist - SHELL_R[0];
       const span = SHELL_R[0] * 2.2;
+      const cands = [];
       NODES.forEach((node) => {
         const o = nodeObjs[node.id];
         const el = o.labelEl;
@@ -461,23 +679,54 @@ export default function LineageGraph() {
         if (tmp.z > 1) { el.style.display = 'none'; return; }
         const x = (tmp.x * 0.5 + 0.5) * width;
         const y = (-tmp.y * 0.5 + 0.5) * height;
-        let op, scale = 1, hl = false;
+        let op, scale = 1, hl = false, prio;
         if (sel) {
           if (!currentChain || !currentChain.has(node.id)) { el.style.display = 'none'; return; }
           op = 1; hl = node.id === sel; scale = hl ? 1.25 : 1;
+          prio = hl ? 1e7 : 1e4 - o.mesh.position.length(); // 选中最高，其余按离中心近优先
         } else {
           const d = o.mesh.position.distanceTo(camera.position);
           const tt = Math.max(0, Math.min(1, (d - near) / span));
           op = (1 - tt * 0.8) * introT;
-          if (node.id === hoverId) { op = 1; scale = 1.3; hl = true; }
+          if (node.id === hoverId) { op = 1; scale = 1.3; hl = true; prio = 1e7; }
+          else prio = op; // 越近(透明度越高)优先级越高
         }
-        el.style.display = '';
-        el.style.opacity = op.toFixed(3);
-        el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%) scale(${scale})`;
-        el.classList.toggle('hl', hl);
-        el.style.zIndex = hl ? '6' : '';
+        if (!o.labelW && el.offsetWidth) { o.labelW = el.offsetWidth; o.labelH = el.offsetHeight; }
+        cands.push({ el, x, y, op, scale, hl, prio, w: (o.labelW || 72) * scale, h: (o.labelH || 21) * scale });
       });
+      // 高优先级先占位；与已放置标签重叠的低优先级标签淡出隐藏（高亮/选中始终保留）
+      cands.sort((p, q) => q.prio - p.prio);
+      const placed = [];
+      const PAD = 3;
+      for (const c of cands) {
+        const l = c.x - c.w / 2 - PAD, r = c.x + c.w / 2 + PAD;
+        const tp = c.y - c.h / 2 - PAD, bt = c.y + c.h / 2 + PAD;
+        let clash = false;
+        if (!c.hl) {
+          for (const p of placed) {
+            if (l < p.r && r > p.l && tp < p.bt && bt > p.tp) { clash = true; break; }
+          }
+        }
+        if (clash) { c.el.style.display = 'none'; continue; }
+        placed.push({ l, r, tp, bt });
+        c.el.style.display = '';
+        c.el.style.opacity = c.op.toFixed(3);
+        c.el.style.transform = `translate(${c.x}px, ${c.y}px) translate(-50%, -50%) scale(${c.scale})`;
+        c.el.classList.toggle('hl', c.hl);
+        c.el.style.zIndex = c.hl ? '6' : '';
+      }
 
+      // 选中切换瞬间自动取景：按链路最大半径反推距离，保证整条血缘完整入镜（之后交还用户缩放）
+      if (sel !== camLastSel) {
+        camLastSel = sel;
+        camReframe = 1;
+        camWantDist = sel ? Math.max(330, Math.min(800, (selMaxR + 78) / 0.36)) : 500;
+      }
+      if (camReframe > 0) {
+        camReframe = Math.max(0, camReframe - 0.02);
+        const curDist = camera.position.length() || 1;
+        camera.position.multiplyScalar(1 + (camWantDist / curDist - 1) * 0.08);
+      }
       controls.update();
       renderer.render(scene, camera);
     }

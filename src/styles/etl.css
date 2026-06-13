@@ -1446,23 +1446,38 @@
   top: 0;
   left: 0;
   white-space: nowrap;
-  padding: 2px 8px 2px 7px;
-  font: 600 12px/1.25 'Cascadia Code', 'Fira Code', monospace;
+  padding: 2px 9px 2px 8px;
+  font: 600 11.5px/1.3 -apple-system, 'PingFang SC', 'Microsoft YaHei', system-ui, sans-serif;
+  letter-spacing: 0.02em;
   color: var(--text);
-  background: color-mix(in srgb, var(--card) 78%, transparent);
-  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--card) 86%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
   border-left: 3px solid var(--lc, var(--accent));
-  border-radius: 6px;
-  box-shadow: 0 2px 10px var(--shadow);
-  backdrop-filter: blur(3px);
+  border-radius: 7px;
+  box-shadow: 0 2px 8px var(--shadow);
+  backdrop-filter: blur(4px);
   will-change: transform, opacity;
-  transition: opacity 0.18s linear;
+  transition: opacity 0.18s linear, background 0.18s linear, box-shadow 0.18s linear;
+}
+
+/* 标签前的分类色点，弱化对文字的遮挡感、增强可读层次 */
+.l3d-label::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--lc, var(--accent));
+  vertical-align: middle;
+  transform: translateY(-1px);
 }
 
 .l3d-label.hl {
   color: var(--text);
+  background: color-mix(in srgb, var(--lc, var(--accent)) 16%, var(--card));
   border-color: var(--lc, var(--accent));
-  box-shadow: 0 0 0 1px var(--lc, var(--accent)), 0 4px 14px var(--shadow);
+  box-shadow: 0 0 0 1px var(--lc, var(--accent)), 0 6px 18px var(--shadow);
 }
 
 .lineage-3d-shellhint {
@@ -1476,6 +1491,13 @@
   pointer-events: none;
   user-select: none;
   z-index: 2;
+  opacity: 1;
+  transition: opacity 0.25s ease;
+}
+
+/* 选中后同心壳层隐藏，分层说明随之淡出，避免误导 */
+.lineage-graph-3d.has-detail .lineage-3d-shellhint {
+  opacity: 0;
 }
 
 .lineage-3d-shellhint span {
