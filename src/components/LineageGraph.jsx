@@ -409,25 +409,28 @@ export default function LineageGraph() {
       };
     });
 
-    // ── 关联线：把所有边都连上，统一用细发光管(Additive)。主干亮、派生网弱，分层不糊成暗带 ──
+    // ── 关联线：实色连接线。主干全连，派生网抽稀约 30%（太密），降低静止态视觉杂乱 ──
     const partGeo = new THREE.SphereGeometry(1.3, 10, 10);
     const isDense = (e) => e.type === 'derive' || e.type === 'carry' || e.type === 'posefuse';
     const edgeObjs = [];
     const flowParts = [];
+    let denseSeen = 0;
     EDGES.forEach((e, i) => {
+      const dense = isDense(e);
+      // 派生/携带/姿态边只保留 1/3（每 3 条留 1 条），大幅抽稀，主干边全部保留
+      if (dense && (++denseSeen % 3 !== 0)) return;
       const a = nodeObjs[e.from].finalPos;
       const b = nodeObjs[e.to].finalPos;
       const mid = a.clone().add(b).multiplyScalar(0.5).multiplyScalar(0.88); // 轻微内凹，向核心汇聚
       const curve = new THREE.QuadraticBezierCurve3(a.clone(), mid, b.clone());
       const cv = edgeColorVar(e);
-      const dense = isDense(e);
       const baseOp = dense ? 0.3 : 0.65; // 普通实色连接线：派生网弱、主干清晰（仿最初版本的连线）
       const mat = new THREE.MeshBasicMaterial({
         color: col(cv).clone(), transparent: true, opacity: 0, depthWrite: false,
       });
       const tube = new THREE.Mesh(new THREE.TubeGeometry(curve, 22, dense ? 0.45 : 0.8, 6, false), mat);
       scene.add(tube);
-      edgeObjs.push({ mat, mesh: tube, baseOp });
+      edgeObjs.push({ mat, mesh: tube, baseOp, cv });
 
       // 流向光点只挂在主干边上，避免上百个点过于杂乱
       if (!dense) {
@@ -566,7 +569,7 @@ export default function LineageGraph() {
         o.mat.color.copy(c);
         o.glowMat.color.copy(c);
       });
-      edgeObjs.forEach((eo, i) => eo.mat.color.copy(col(edgeColorVar(EDGES[i]))));
+      edgeObjs.forEach((eo) => eo.mat.color.copy(col(eo.cv)));
       flowParts.forEach((p) => p.mat.color.copy(col(p.cv)));
       shellMeshes.forEach((sm) => sm.mat.color.copy(col('--border')));
     }
