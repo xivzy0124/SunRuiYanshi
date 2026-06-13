@@ -282,7 +282,7 @@
 .workflow-edge {
   fill: none;
   stroke: #b4bccb;
-  stroke-width: 2;
+  stroke-width: 1.2;
   stroke-linecap: round;
   stroke-linejoin: round;
   pointer-events: none;
@@ -296,12 +296,12 @@
 
 .workflow-edge:hover {
   opacity: 1;
-  stroke-width: 2.5;
+  stroke-width: 1.6;
 }
 
 .workflow-edge.selected {
   stroke: #6c8cff;
-  stroke-width: 2.5;
+  stroke-width: 1.6;
   opacity: 1;
   filter: drop-shadow(0 2px 4px rgba(108, 140, 255, 0.3));
 }
@@ -309,7 +309,7 @@
 .workflow-edge-temp {
   fill: none;
   stroke: #6c8cff;
-  stroke-width: 2;
+  stroke-width: 1.2;
   stroke-linecap: round;
   stroke-linejoin: round;
   stroke-dasharray: 8 4;
