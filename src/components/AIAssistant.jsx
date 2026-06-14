@@ -1,5 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
-import { RobotOutlined, CloseOutlined } from '@ant-design/icons';
+import { RobotOutlined, CloseOutlined, AudioOutlined } from '@ant-design/icons';
+
+// ─── 语音识别目标文案（10 秒内逐字"识别"浮现）───
+const VOICE_TARGET_TEXT =
+  '请帮我完成当前足底压力与人体姿态数据的清洗规整、字段标准化，按毫秒级时间戳完成时序融合，最终实现数据入库、API 接口发布，并自动生成完整数据血缘关系。';
+const VOICE_DURATION_MS = 10000;
 
 // ─── 工作流模板库 ───
 const WORKFLOW_TEMPLATES = {
@@ -175,7 +180,14 @@ export default function AIAssistant({ onWorkflowGenerated }) {
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  // 语音识别（现场输入）状态
+  const [isListening, setIsListening] = useState(false);
+  const [voiceProgress, setVoiceProgress] = useState(0); // 0~1，用于倒计时/波形强度
+  const voiceTimerRef = useRef(null);
   const messagesEndRef = useRef(null);
+
+  // 组件卸载时清理语音定时器
+  useEffect(() => () => clearInterval(voiceTimerRef.current), []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -185,10 +197,11 @@ export default function AIAssistant({ onWorkflowGenerated }) {
     scrollToBottom();
   }, [messages]);
 
-  const handleSend = () => {
-    if (!input.trim()) return;
+  // 统一发送逻辑（手动输入 / 语音识别共用）
+  const sendMessage = (rawText) => {
+    const userMessage = rawText.trim();
+    if (!userMessage) return;
 
-    const userMessage = input.trim();
     setInput('');
     setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
     setIsTyping(true);
@@ -219,6 +232,48 @@ export default function AIAssistant({ onWorkflowGenerated }) {
         }, 500);
       }
     }, 800);
+  };
+
+  const handleSend = () => {
+    if (!input.trim()) return;
+    sendMessage(input);
+  };
+
+  // ─── 现场语音输入：点击小球 → 波动 → 10 秒内逐字"识别"文案 → 自动发送 ───
+  const handleVoiceInput = () => {
+    if (isListening || isTyping) return;
+
+    setIsListening(true);
+    setVoiceProgress(0);
+    setInput('');
+
+    const start = Date.now();
+    const total = VOICE_TARGET_TEXT.length;
+
+    voiceTimerRef.current = setInterval(() => {
+      const elapsed = Date.now() - start;
+      const progress = Math.min(elapsed / VOICE_DURATION_MS, 1);
+      setVoiceProgress(progress);
+
+      // 按时间进度逐字浮现，模拟实时语音转写
+      const charCount = Math.floor(progress * total);
+      setInput(VOICE_TARGET_TEXT.slice(0, charCount));
+
+      if (progress >= 1) {
+        clearInterval(voiceTimerRef.current);
+        setInput(VOICE_TARGET_TEXT);
+        setIsListening(false);
+        setVoiceProgress(0);
+        // 识别完成后自动发送
+        sendMessage(VOICE_TARGET_TEXT);
+      }
+    }, 80);
+  };
+
+  const handleStopVoice = () => {
+    clearInterval(voiceTimerRef.current);
+    setIsListening(false);
+    setVoiceProgress(0);
   };
 
   const handleSuggestionClick = (suggestion) => {
@@ -304,16 +359,43 @@ export default function AIAssistant({ onWorkflowGenerated }) {
             ))}
           </div>
 
+          {/* 现场语音识别浮层：小球 + 波动 + 倒计时 */}
+          {isListening && (
+            <div className="ai-voice-overlay" onClick={handleStopVoice}>
+              <div className="voice-ball-wrap">
+                <span className="voice-ripple" />
+                <span className="voice-ripple" />
+                <span className="voice-ripple" />
+                <span className="voice-ball">
+                  <AudioOutlined />
+                </span>
+              </div>
+              <div className="voice-status">正在聆听并识别…</div>
+              <div className="voice-countdown">
+                {Math.ceil((1 - voiceProgress) * (VOICE_DURATION_MS / 1000))} 秒
+              </div>
+              <div className="voice-hint">点击任意处停止</div>
+            </div>
+          )}
+
           <div className="ai-input-area">
+            <button
+              className={`voice-btn ${isListening ? 'listening' : ''}`}
+              onClick={isListening ? handleStopVoice : handleVoiceInput}
+              disabled={isTyping}
+              title="现场语音输入"
+            >
+              <AudioOutlined />
+            </button>
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder="输入指令，如：生成双源融合流水线"
-              disabled={isTyping}
+              placeholder={isListening ? '识别中…' : '输入指令，如：生成双源融合流水线'}
+              disabled={isTyping || isListening}
             />
-            <button className="send-btn" onClick={handleSend} disabled={isTyping || !input.trim()}>
+            <button className="send-btn" onClick={handleSend} disabled={isTyping || isListening || !input.trim()}>
               发送
             </button>
           </div>
