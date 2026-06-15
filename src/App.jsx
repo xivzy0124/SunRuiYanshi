@@ -56,7 +56,7 @@ function App() {
 
   // AI 生成工作流并注入编辑器
   const handleWorkflowGenerated = useCallback(
-    (workflow) => {
+    (workflow, opts = {}) => {
       // 切换到工作流编辑器页面
       store.setCurrentPage('workflow');
       store.updateStepStatus('workflow', 'running');
@@ -65,6 +65,15 @@ function App() {
       setTimeout(() => {
         workflowEditorRef.current?.injectWorkflow(workflow);
       }, 300);
+
+      // 语音指令：注入并展示片刻后，缓慢切换到第三页（流水线执行页）
+      if (opts.fromVoice) {
+        setTimeout(() => {
+          store.executeWorkflow();
+          store.updateStepStatus('execute', 'running');
+          store.setCurrentPage('pipeline');
+        }, 2600);
+      }
     },
     [store]
   );
@@ -120,7 +129,9 @@ function App() {
         />
 
         {/* 页面内容 */}
-        <div className="page-content">{renderCurrentPage()}</div>
+        <div className="page-content" key={store.currentPage}>
+          {renderCurrentPage()}
+        </div>
 
         {/* AI 助手 — 仅在工作流编辑器页面显示 */}
         {store.currentPage === 'workflow' && (

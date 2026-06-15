@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { RobotOutlined, CloseOutlined, AudioOutlined } from '@ant-design/icons';
 
-// ─── 语音识别目标文案（10 秒内逐字"识别"浮现）───
+// ─── 语音识别目标文案（按快捷键后整段"跳出"）───
 const VOICE_TARGET_TEXT =
   '请帮我完成当前足底压力与人体姿态数据的清洗规整、字段标准化，按毫秒级时间戳完成时序融合，最终实现数据入库、API 接口发布，并自动生成完整数据血缘关系。';
-const VOICE_DURATION_MS = 10000;
+// 识别完成后，整段文案停留展示的时长（"跳出"后稍作停顿再发送）
+const RECOGNIZED_HOLD_MS = 1500;
 
 // ─── 工作流模板库 ───
 const WORKFLOW_TEMPLATES = {
@@ -178,16 +179,11 @@ export default function AIAssistant({ onWorkflowGenerated }) {
         '你好！我是 AI 编排助手。告诉我你想要什么，我会自动生成工作流并注入到编辑器画布中。\n\n试试输入："生成双源融合流水线"',
     },
   ]);
-  const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   // 语音识别（现场输入）状态
   const [isListening, setIsListening] = useState(false);
-  const [voiceProgress, setVoiceProgress] = useState(0); // 0~1，用于倒计时/波形强度
-  const voiceTimerRef = useRef(null);
+  const [recognizedText, setRecognizedText] = useState(''); // 按快捷键后整段"跳出"的文案
   const messagesEndRef = useRef(null);
-
-  // 组件卸载时清理语音定时器
-  useEffect(() => () => clearInterval(voiceTimerRef.current), []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -198,11 +194,10 @@ export default function AIAssistant({ onWorkflowGenerated }) {
   }, [messages]);
 
   // 统一发送逻辑（手动输入 / 语音识别共用）
-  const sendMessage = (rawText) => {
+  const sendMessage = (rawText, opts = {}) => {
     const userMessage = rawText.trim();
     if (!userMessage) return;
 
-    setInput('');
     setMessages((prev) => [...prev, { role: 'user', content: userMessage }]);
     setIsTyping(true);
 
@@ -225,59 +220,54 @@ export default function AIAssistant({ onWorkflowGenerated }) {
       setMessages((prev) => [...prev, { role: 'assistant', content: response }]);
       setIsTyping(false);
 
-      // 如果匹配到工作流模板，触发注入回调
+      // 如果匹配到工作流模板，触发注入回调（语音指令携带 fromVoice，用于缓慢切换到第三页）
       if (template) {
         setTimeout(() => {
-          onWorkflowGenerated?.(template);
+          onWorkflowGenerated?.(template, opts);
         }, 500);
       }
     }, 800);
   };
 
-  const handleSend = () => {
-    if (!input.trim()) return;
-    sendMessage(input);
-  };
-
-  // ─── 现场语音输入：点击小球 → 波动 → 10 秒内逐字"识别"文案 → 自动发送 ───
+  // ─── 现场语音输入：点击小球 → 持续聆听 → 按快捷键(空格) → 整段文案"跳出" → 自动发送 ───
   const handleVoiceInput = () => {
     if (isListening || isTyping) return;
-
     setIsListening(true);
-    setVoiceProgress(0);
-    setInput('');
-
-    const start = Date.now();
-    const total = VOICE_TARGET_TEXT.length;
-
-    voiceTimerRef.current = setInterval(() => {
-      const elapsed = Date.now() - start;
-      const progress = Math.min(elapsed / VOICE_DURATION_MS, 1);
-      setVoiceProgress(progress);
-
-      // 按时间进度逐字浮现，模拟实时语音转写
-      const charCount = Math.floor(progress * total);
-      setInput(VOICE_TARGET_TEXT.slice(0, charCount));
-
-      if (progress >= 1) {
-        clearInterval(voiceTimerRef.current);
-        setInput(VOICE_TARGET_TEXT);
-        setIsListening(false);
-        setVoiceProgress(0);
-        // 识别完成后自动发送
-        sendMessage(VOICE_TARGET_TEXT);
-      }
-    }, 80);
+    setRecognizedText('');
   };
 
   const handleStopVoice = () => {
-    clearInterval(voiceTimerRef.current);
     setIsListening(false);
-    setVoiceProgress(0);
+    setRecognizedText('');
   };
 
+  // 聆听期间监听快捷键（空格）：整段识别文案"跳出"
+  useEffect(() => {
+    if (!isListening || recognizedText) return;
+    const onKey = (e) => {
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        setRecognizedText(VOICE_TARGET_TEXT);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isListening, recognizedText]);
+
+  // 文案"跳出"后停顿片刻，再自动发送并触发缓慢翻页
+  useEffect(() => {
+    if (!recognizedText) return;
+    const timer = setTimeout(() => {
+      setIsListening(false);
+      setRecognizedText('');
+      sendMessage(VOICE_TARGET_TEXT, { fromVoice: true });
+    }, RECOGNIZED_HOLD_MS);
+    return () => clearTimeout(timer);
+    // sendMessage 仅在文案跳出时调用一次，无需纳入依赖
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recognizedText]);
+
   const handleSuggestionClick = (suggestion) => {
-    setInput(suggestion);
     // 直接发送
     setMessages((prev) => [...prev, { role: 'user', content: suggestion }]);
     setIsTyping(true);
@@ -300,11 +290,20 @@ export default function AIAssistant({ onWorkflowGenerated }) {
 
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button — 点击即打开面板并默认开始语音接收 */}
       <button
         className={`ai-assistant-btn ${isOpen ? 'open' : ''}`}
-        onClick={() => setIsOpen(!isOpen)}
-        title="AI 助手"
+        onClick={() => {
+          if (isOpen) {
+            setIsOpen(false);
+            handleStopVoice();
+          } else {
+            setIsOpen(true);
+            // 打开即默认进入语音接收（待面板浮现后开始聆听）
+            setTimeout(() => handleVoiceInput(), 350);
+          }
+        }}
+        title="AI 语音助手"
       >
         {isOpen ? <CloseOutlined /> : <RobotOutlined />}
       </button>
@@ -359,10 +358,13 @@ export default function AIAssistant({ onWorkflowGenerated }) {
             ))}
           </div>
 
-          {/* 现场语音识别浮层：小球 + 波动 + 倒计时 */}
+          {/* 现场语音识别浮层：小球 + 波动 + 快捷键提示 / 整段"跳出"文案 */}
           {isListening && (
-            <div className="ai-voice-overlay" onClick={handleStopVoice}>
-              <div className="voice-ball-wrap">
+            <div
+              className="ai-voice-overlay"
+              onClick={recognizedText ? undefined : handleStopVoice}
+            >
+              <div className={`voice-ball-wrap ${recognizedText ? 'done' : ''}`}>
                 <span className="voice-ripple" />
                 <span className="voice-ripple" />
                 <span className="voice-ripple" />
@@ -370,15 +372,25 @@ export default function AIAssistant({ onWorkflowGenerated }) {
                   <AudioOutlined />
                 </span>
               </div>
-              <div className="voice-status">正在聆听并识别…</div>
-              <div className="voice-countdown">
-                {Math.ceil((1 - voiceProgress) * (VOICE_DURATION_MS / 1000))} 秒
-              </div>
-              <div className="voice-hint">点击任意处停止</div>
+              {recognizedText ? (
+                <>
+                  <div className="voice-status">识别完成</div>
+                  <div className="voice-recognized">{recognizedText}</div>
+                </>
+              ) : (
+                <>
+                  <div className="voice-status">正在聆听并识别…</div>
+                  <div className="voice-hint">
+                    按 <kbd>空格</kbd> 键结束识别并发送
+                  </div>
+                  <div className="voice-hint">点击任意处取消</div>
+                </>
+              )}
             </div>
           )}
 
-          <div className="ai-input-area">
+          {/* 纯语音输入区：不再提供文字输入 */}
+          <div className="ai-input-area voice-only">
             <button
               className={`voice-btn ${isListening ? 'listening' : ''}`}
               onClick={isListening ? handleStopVoice : handleVoiceInput}
@@ -387,17 +399,13 @@ export default function AIAssistant({ onWorkflowGenerated }) {
             >
               <AudioOutlined />
             </button>
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              placeholder={isListening ? '识别中…' : '输入指令，如：生成双源融合流水线'}
-              disabled={isTyping || isListening}
-            />
-            <button className="send-btn" onClick={handleSend} disabled={isTyping || isListening || !input.trim()}>
-              发送
-            </button>
+            <span className="voice-input-label">
+              {isListening
+                ? recognizedText
+                  ? '识别完成，正在发送…'
+                  : '正在聆听…按 空格键 发送'
+                : '点击麦克风开始语音输入'}
+            </span>
           </div>
         </div>
       )}

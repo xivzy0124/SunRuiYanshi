@@ -222,6 +222,19 @@
 .page-content {
   flex: 1;
   overflow: auto;
+  /* 页面切换缓慢淡入 */
+  animation: pageSlideIn 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes pageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 /* AI 助手按钮 */
@@ -626,6 +639,67 @@
 }
 
 .voice-hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.voice-hint kbd {
+  display: inline-block;
+  padding: 1px 7px;
+  margin: 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--accent);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+}
+
+/* 按快捷键后整段"跳出"的识别文案 */
+.voice-recognized {
+  max-width: 88%;
+  max-height: 38%;
+  overflow: auto;
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text);
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 22%, transparent);
+  animation: voiceTextPop 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes voiceTextPop {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 识别完成后小球停止呼吸、收敛为完成态 */
+.voice-ball-wrap.done .voice-ball {
+  animation: none;
+}
+
+.voice-ball-wrap.done .voice-ripple {
+  animation: none;
+  opacity: 0;
+}
+
+/* 纯语音输入区（无文字输入框） */
+.ai-input-area.voice-only {
+  align-items: center;
+}
+
+.voice-input-label {
   font-size: 12px;
   color: var(--muted);
 }
